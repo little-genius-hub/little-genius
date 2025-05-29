@@ -1,4 +1,4 @@
-# Little Genius PWA
+# Little Genius
 
 Little Genius is an educational Progressive Web App (PWA) for children featuring games and stories with bilingual support.
 
