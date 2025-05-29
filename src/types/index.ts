@@ -1,13 +1,13 @@
 export interface User {
   id: string
-  googleId: string
-  email: string
   name: string
+  username?: string
+  email: string
   avatar?: string
   parentPin?: string
   children: Child[]
-  createdAt: Date
-  updatedAt: Date
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export interface Child {

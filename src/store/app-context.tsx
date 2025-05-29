@@ -47,7 +47,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, pwaInstallPrompt: action.payload }
     case "UPDATE_CHILD_PROGRESS":
       if (!state.user) return state
-      const updatedChildren = state.user.children.map((child) =>
+      const updatedChildren = (state.user.children || []).map((child) =>
         child.id === action.payload.childId
           ? { ...child, progress: { ...child.progress, ...action.payload.progress } }
           : child,
@@ -117,5 +117,27 @@ export function useApp() {
   if (!context) {
     throw new Error("useApp must be used within an AppProvider")
   }
-  return context
+  
+  // Auth helper functions
+  const login = async (user: User) => {
+    context.dispatch({ type: "SET_USER", payload: user })
+  }
+  
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+      context.dispatch({ type: "SET_USER", payload: null })
+      context.dispatch({ type: "SET_CURRENT_CHILD", payload: null })
+      // Reload the page to clear any cached data
+      window.location.href = "/"
+    } catch (error) {
+      console.error("Logout failed:", error)
+    }
+  }
+  
+  return { 
+    ...context, 
+    login, 
+    logout 
+  }
 }

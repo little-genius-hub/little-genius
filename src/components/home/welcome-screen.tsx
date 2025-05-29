@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,35 +10,6 @@ import { useTranslation } from "@/lib/i18n"
 export function WelcomeScreen() {
   const { state, dispatch } = useApp()
   const { t } = useTranslation(state.language)
-  const [isSigningIn, setIsSigningIn] = useState(false)
-
-  const handleGoogleSignIn = async () => {
-    setIsSigningIn(true)
-    try {
-      // For development, create a mock user
-      // This will be replaced with actual Google OAuth
-      const mockUser = {
-        id: `user_${Date.now()}`,
-        googleId: "mock_google_id",
-        email: "demo@example.com",
-        name: "Demo Parent",
-        avatar: undefined,
-        parentPin: undefined,
-        children: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      dispatch({ type: "SET_USER", payload: mockUser })
-    } catch (error) {
-      console.error("Sign in failed:", error)
-    } finally {
-      setIsSigningIn(false)
-    }
-  }
 
   const toggleLanguage = () => {
     dispatch({ type: "SET_LANGUAGE", payload: state.language === "en" ? "id" : "en" })
@@ -131,27 +101,28 @@ export function WelcomeScreen() {
                     : "Lacak kemajuan belajar untuk setiap anak"}
                 </p>
               </div>
+            </div>            {/* Auth Buttons */}
+            <div className="space-y-3">
+              <Button
+                onClick={() => window.location.href = "/login"}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              >
+                <span>{state.language === "en" ? "Sign In" : "Masuk"}</span>
+              </Button>
+              
+              <Button
+                onClick={() => window.location.href = "/register"}
+                variant="outline"
+                className="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
+                <span>{state.language === "en" ? "Create Account" : "Buat Akun"}</span>
+              </Button>
             </div>
-
-            <Button
-              onClick={handleGoogleSignIn}
-              disabled={isSigningIn}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            >
-              {isSigningIn ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>{state.language === "en" ? "Signing in..." : "Masuk..."}</span>
-                </div>
-              ) : (
-                <span>{state.language === "en" ? "Sign in with Google" : "Masuk dengan Google"}</span>
-              )}
-            </Button>
 
             <p className="text-center text-xs text-gray-500 mt-6">
               {state.language === "en"
-                ? "For demonstration purposes only. No actual Google sign-in."
-                : "Hanya untuk tujuan demonstrasi. Tidak ada login Google yang sebenarnya."}
+                ? "Sign in to save your child's progress and access all features."
+                : "Masuk untuk menyimpan kemajuan anak dan mengakses semua fitur."}
             </p>
           </CardContent>
         </Card>
