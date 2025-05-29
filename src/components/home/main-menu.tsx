@@ -10,15 +10,13 @@ import { useTranslation } from "@/lib/i18n"
 import { useRouter } from "next/navigation"
 
 export function MainMenu() {
-  const { state, dispatch } = useApp()
+  const { state, dispatch, logout } = useApp()
   const { t } = useTranslation(state.language)
   const router = useRouter()
 
   const handleSignOut = async () => {
     try {
-      await fetch("/api/auth/signout", { method: "POST" })
-      dispatch({ type: "SET_USER", payload: null })
-      dispatch({ type: "SET_CURRENT_CHILD", payload: null })
+      await logout()
     } catch (error) {
       console.error("Sign out failed:", error)
     }

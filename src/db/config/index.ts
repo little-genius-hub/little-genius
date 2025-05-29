@@ -1,15 +1,32 @@
-// Database configuration
-// This is a placeholder file for database configuration
+import { MongoClient, Db } from "mongodb";
 
-/**
- * Example database configuration
- */
-export const dbConfig = {
-  // Add your database configuration here
-  // For example:
-  // host: process.env.DB_HOST || 'localhost',
-  // port: process.env.DB_PORT || 5432,
-  // user: process.env.DB_USER || 'postgres',
-  // password: process.env.DB_PASSWORD || 'postgres',
-  // database: process.env.DB_NAME || 'little_genius',
+let cachedClient: MongoClient | null = null;
+let cachedDb: Db | null = null;
+
+export async function connectToDatabase() {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error("Please define the MONGODB_URI environment variable");
+  }
+
+  const client = new MongoClient(uri);
+  await client.connect();
+  
+  const db = client.db("little-genius");
+  
+  cachedClient = client;
+  cachedDb = db;
+  
+  return { client, db };
 }
+
+export const db = {
+  async getDb() {
+    const { db } = await connectToDatabase();
+    return db;
+  }
+};
