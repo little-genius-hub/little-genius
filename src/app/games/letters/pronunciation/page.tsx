@@ -67,6 +67,10 @@ export default function PronunciationPage() {
   const { t } = useTranslation(state.language)
   const router = useRouter()
 
+  async function fetchWords() {
+    let res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/pronounce`)
+  }
+
   const [gameState, setGameState] = useState<GameState>({
     currentProblem: 0,
     score: 0,
