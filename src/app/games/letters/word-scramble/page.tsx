@@ -4,29 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-imp  if (gameState.gameComplete) {
-    return (
-      <div className="min-h-screen bg-gradient-radial from-violet-400 via-purple-500 to-indigo-600 animate-gradient-slow flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-md border-0 shadow-2xl rounded-2xl overflow-hidden">
-          <div className="relative overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-violet-200 rounded-full opacity-30 blur-2xl"></div>
-            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-200 rounded-full opacity-30 blur-2xl"></div>
-            
-            <CardContent className="p-8 text-center space-y-8 relative z-10">
-              <div className="w-24 h-24 bg-gradient-to-tr from-purple-400 to-violet-500 shadow-lg shadow-purple-400/30 rounded-full flex items-center justify-center mx-auto animate-float">
-                <Trophy className="h-12 w-12 text-white" />
-              </div>
-
-              <div>
-                <h2 className="text-3xl font-bold text-indigo-800 mb-2 font-nunito">
-                  {state.language === "en" ? "Congratulations!" : "Selamat!"}
-                </h2>
-                <p className="text-purple-600 font-nunito">
-                  {state.language === "en"
-                    ? "You completed the word scramble game!"
-                    : "Anda telah menyelesaikan permainan mengacak kata!"}
-                </p>
-              </div>"@/components/ui/input"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, Star, Heart, CheckCircle, XCircle, Trophy, Shuffle, Lightbulb } from "lucide-react"
@@ -143,6 +121,16 @@ export default function WordScramblePage() {
     setGameState((prev) => ({ ...prev, problems }))
   }, [gameState.subLevel, state.language])
 
+  useEffect(() => {
+    if (!state.currentChild) {
+      router.push("/")
+    }
+  }, [state.currentChild, router])
+
+  if (!state.currentChild) {
+    return null
+  }
+
   const handleAnswerSubmit = () => {
     const currentProblem = gameState.problems[gameState.currentProblem]
     const userAnswer = gameState.userAnswer.toLowerCase().trim()
@@ -245,39 +233,71 @@ export default function WordScramblePage() {
     setGameState((prev) => ({ ...prev, problems: updatedProblems }))
   }
 
-  if (!state.currentChild) {
-    router.push("/")
-    return null
-  }
-
   const currentProblem = gameState.problems[gameState.currentProblem]
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl shadow-inner">
-                <div className="text-3xl font-bold text-purple-500 flex items-center justify-center gap-2">
-                  <Star className="h-5 w-5 text-purple-500 animate-pulse-gentle" />
-                  {gameState.score}
-                </div>
-                <p className="text-sm text-gray-600 font-nunito mt-1">
-                  {state.language === "en" ? "Stars Earned" : "Bintang Diperoleh"}
+  const progress = ((gameState.currentProblem + 1) / 10) * 100
+
+  if (gameState.gameComplete) {
+    return (
+      <div className="min-h-screen bg-gradient-radial from-violet-400 via-purple-500 to-indigo-600 animate-gradient-slow flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-md border-0 shadow-2xl rounded-2xl overflow-hidden">
+          <div className="relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-violet-200 rounded-full opacity-30 blur-2xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-200 rounded-full opacity-30 blur-2xl"></div>
+            
+            <CardContent className="p-8 text-center space-y-8 relative z-10">
+              <div className="w-24 h-24 bg-gradient-to-tr from-purple-400 to-violet-500 shadow-lg shadow-purple-400/30 rounded-full flex items-center justify-center mx-auto animate-float">
+                <Trophy className="h-12 w-12 text-white" />
+              </div>
+
+              <div>
+                <h2 className="text-3xl font-bold text-indigo-800 mb-2 font-nunito">
+                  {state.language === "en" ? "Congratulations!" : "Selamat!"}
+                </h2>
+                <p className="text-purple-600 font-nunito">
+                  {state.language === "en"
+                    ? "You completed the word scramble game!"
+                    : "Anda telah menyelesaikan permainan mengacak kata!"}
                 </p>
               </div>
-              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 rounded-xl shadow-inner">
-                <div className="text-3xl font-bold text-indigo-500">{Math.round((gameState.score / 100) * 100)}%</div>
-                <p className="text-sm text-gray-600 font-nunito mt-1">{state.language === "en" ? "Accuracy" : "Akurasi"}</p>
+              
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl shadow-inner">
+                  <div className="text-3xl font-bold text-purple-500 flex items-center justify-center gap-2">
+                    <Star className="h-5 w-5 text-purple-500 animate-pulse-gentle" />
+                    {gameState.score}
+                  </div>
+                  <p className="text-sm text-gray-600 font-nunito mt-1">
+                    {state.language === "en" ? "Stars Earned" : "Bintang Diperoleh"}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 rounded-xl shadow-inner">
+                  <div className="text-3xl font-bold text-indigo-500">{Math.round((gameState.score / 100) * 100)}%</div>
+                  <p className="text-sm text-gray-600 font-nunito mt-1">{state.language === "en" ? "Accuracy" : "Akurasi"}</p>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-3 pt-2">
-              <Button 
-                onClick={restartGame} 
-                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                {state.language === "en" ? "Play Again" : "Main Lagi"}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => router.push("/games/letters")} 
-                className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors duration-300"
+              <div className="space-y-3 pt-2">
+                <Button 
+                  onClick={restartGame} 
+                  className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                >
+                  {state.language === "en" ? "Play Again" : "Main Lagi"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push("/games/letters")} 
+                  className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors duration-300"
+                >
+                  {state.language === "en" ? "Back to Games" : "Kembali ke Permainan"}
+                </Button>
+              </div>
+            </CardContent>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-radial from-violet-400 via-purple-500 to-indigo-600 animate-gradient-slow">
       {/* Header */}
@@ -317,8 +337,8 @@ export default function WordScramblePage() {
             </div>
           </div>
         </div>
-      </div>  variant="ghost"
-              size="sm"
+      </div>
+      
       {/* Game Content */}
       <div className="max-w-2xl mx-auto p-4 space-y-6">
         {/* Progress */}
@@ -328,7 +348,7 @@ export default function WordScramblePage() {
               <span className="text-purple-700 font-medium">{state.language === "en" ? "Progress" : "Kemajuan"}</span>
               <span className="bg-purple-50 px-2 py-0.5 rounded-full text-purple-700 font-medium">{gameState.currentProblem + 1}/10</span>
             </div>
-            <Progress value={progress} className="h-3 bg-violet-100" indicatorClassName="bg-gradient-to-r from-violet-500 to-indigo-600" />
+            <Progress value={progress} className="h-3 bg-violet-100" />
           </CardContent>
         </Card>
 
@@ -351,6 +371,13 @@ export default function WordScramblePage() {
                   <div className="text-center">
                     <div className="text-lg font-medium">{level}</div>
                     <div className="text-xs opacity-80">{state.language === "en" ? "Level" : "Level"}</div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Problem Card */}
         {currentProblem && (
           <Card className="bg-white/95 backdrop-blur-md border-0 shadow-2xl rounded-xl overflow-hidden">
@@ -384,48 +411,8 @@ export default function WordScramblePage() {
                 </Button>
               </div>
             </div>
-            <CardHeader className="pb-0 pt-3">
-            </CardHeader>
 
-        {/* Sub-Level Selector */}
-        <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
-          <CardContent className="p-4">
-            <div className="flex gap-2 justify-center">
-              {[1, 2, 3].map((level) => (
-                <Button
-                  key={level}
-                  variant={gameState.subLevel === level ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => changeSubLevel(level)}
-                  className="min-w-[80px]"
-                >
-                  {state.language === "en" ? "Level" : "Level"} {level}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Problem Card */}
-        {currentProblem && (
-          <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
-            <CardHeader className="text-center pb-4">
-              <CardTitle className="text-lg text-gray-600 mb-2">{t("unscrambleWord")}</CardTitle>
-              <div className="text-4xl font-bold text-gray-800 tracking-widest mb-4">
-                {currentProblem.scrambledWord.toUpperCase()}
-              </div>
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" size="sm" onClick={scrambleAgain}>
-                  <Shuffle className="h-4 w-4 mr-1" />
-                  {state.language === "en" ? "Scramble Again" : "Acak Lagi"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={toggleHint}>
-                  <Lightbulb className="h-4 w-4 mr-1" />
-                  {state.language === "en" ? "Hint" : "Petunjuk"}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 p-5">
               {gameState.showHint && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
                   <p className="text-yellow-800 text-sm">
