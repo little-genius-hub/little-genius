@@ -198,17 +198,14 @@ export default function WordScramblePage() {
       showHint: false,
     }));
 
-    // Auto-advance after showing result
     setTimeout(() => {
       if (
         gameState.currentProblem + 1 >= gameState.problems.length ||
-        gameState.lives <= 0
+        (!isCorrect && gameState.lives - 1 <= 0) // lives habis setelah salah
       ) {
-        // Game complete
         setGameState((prev) => ({ ...prev, gameComplete: true }));
         saveProgress();
       } else {
-        // Next problem
         setGameState((prev) => ({
           ...prev,
           currentProblem: prev.currentProblem + 1,

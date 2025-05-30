@@ -1,7 +1,7 @@
 // Database models
 // This is a placeholder file for database models
 
-import { db } from "../mongoDb";
+import { db } from "../config";
 
 /**
  * Example User model
@@ -23,6 +23,7 @@ export interface Game {
   // Add more fields as needed
 }
 
-export function collectionProgress() {
-  return db.collection("progress");
+export async function collectionProgress() {
+  const database = await db.getDb();
+  return database.collection("progress");
 }
