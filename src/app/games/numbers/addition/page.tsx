@@ -116,7 +116,11 @@ export default function AdditionGamePage() {
     }));
 
     setTimeout(() => {
-      if (gameState.currentProblem + 1 >= gameState.problems.length) {
+      // TAMBAHKAN LOGIKA INI:
+      if (
+        gameState.currentProblem + 1 >= gameState.problems.length ||
+        (!isCorrect && gameState.lives - 1 <= 0) // lives habis setelah salah
+      ) {
         setGameState((prev) => ({ ...prev, gameComplete: true }));
         saveProgress();
       } else {
@@ -130,10 +134,12 @@ export default function AdditionGamePage() {
     }, 1500);
   }
 
-  // Save progress to global state (and optionally backend)
+  // Save progress to global state dan ke backend
   async function saveProgress() {
     if (!state.currentChild) return;
-    const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+    const timeSpent = startTime
+      ? Math.floor((Date.now() - startTime) / 1000)
+      : 0;
     const completedLevel = {
       level: gameState.subLevel,
       subLevel: gameState.subLevel,
@@ -143,6 +149,19 @@ export default function AdditionGamePage() {
       mistakes: PROBLEMS_PER_LEVEL - gameState.score / 10,
     };
 
+    // Kirim ke backend (API Next.js)
+    try {
+      await fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(completedLevel),
+      });
+    } catch (err) {
+      // Optional: tampilkan error jika gagal simpan ke backend
+      console.error("Failed to save progress to backend", err);
+    }
+
+    // Update state lokal
     const updatedProgress = {
       numbers: {
         ...state.currentChild.progress.numbers,
@@ -200,13 +219,14 @@ export default function AdditionGamePage() {
   }
 
   const currentProblem = gameState.problems[gameState.currentProblem];
-  const progress =
-    ((gameState.currentProblem + 1) / PROBLEMS_PER_LEVEL) * 100;
+  const progress = ((gameState.currentProblem + 1) / PROBLEMS_PER_LEVEL) * 100;
 
   // Game complete popup
   if (gameState.gameComplete) {
     const level = gameState.subLevel;
-    const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+    const timeSpent = startTime
+      ? Math.floor((Date.now() - startTime) / 1000)
+      : 0;
 
     return (
       <div className="min-h-screen bg-gradient-radial from-teal-400 via-blue-500 to-indigo-600 animate-gradient-slow flex items-center justify-center p-4">
@@ -251,7 +271,8 @@ export default function AdditionGamePage() {
               </div>
               <div className="flex flex-col items-center space-y-1">
                 <span className="text-sm text-gray-700">
-                  Level: <span className="font-bold text-indigo-700">{level}</span>
+                  Level:{" "}
+                  <span className="font-bold text-indigo-700">{level}</span>
                 </span>
                 <span className="text-sm text-gray-700">
                   Time Spent:{" "}

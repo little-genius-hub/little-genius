@@ -1,6 +1,8 @@
 // Database models
 // This is a placeholder file for database models
 
+import { db } from "../mongoDb";
+
 /**
  * Example User model
  */
@@ -19,4 +21,8 @@ export interface Game {
   title: string;
   description: string;
   // Add more fields as needed
+}
+
+export function collectionProgress() {
+  return db.collection("progress");
 }
