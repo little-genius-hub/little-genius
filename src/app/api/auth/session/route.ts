@@ -23,13 +23,11 @@ export async function GET() {
       email: string;
     }>(token);
 
-    // Fetch full user data from database to include children
     const userData = await UserModel.findById(decoded.userId);
     if (!userData) {
       return NextResponse.json(null);
     }
 
-    // Ensure children is always an array
     const userResponse = {
       id: userData._id,
       name: userData.name,

@@ -17,13 +17,12 @@ interface RegisterRequest extends NewUser {
 export async function POST(request: Request) {
   try {
     const userData: RegisterRequest = await request.json();
-    
-    // Create user with children array (initially empty from frontend)
+
     await UserModel.create({
       ...userData,
-      children: userData.children || [], // Ensure children is always an array
+      children: userData.children || [],
     });
-    
+
     return Response.json(
       { message: "User created successfully!" },
       { status: 201 }
