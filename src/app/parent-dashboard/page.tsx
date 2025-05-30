@@ -1,0 +1,453 @@
+"use client"
+
+import { useState } from "react"
+import { Bell, Clock, Settings, Star, TrendingUp, Trophy, User } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+// Mock data for demonstration
+const children = [
+  {
+    id: 1,
+    name: "Emma",
+    age: 7,
+    avatar: "/placeholder.svg?height=40&width=40",
+    totalPlayTime: "2h 45m",
+    gamesCompleted: 12,
+    currentStreak: 5,
+    level: 8,
+  },
+  {
+    id: 2,
+    name: "Liam",
+    age: 5,
+    avatar: "/placeholder.svg?height=40&width=40",
+    totalPlayTime: "1h 30m",
+    gamesCompleted: 8,
+    currentStreak: 3,
+    level: 5,
+  },
+]
+
+const recentActivities = [
+  {
+    id: 1,
+    childName: "Emma",
+    game: "Math Adventure",
+    score: 95,
+    duration: "15 min",
+    timestamp: "2 hours ago",
+    skillsImproved: ["Addition", "Problem Solving"],
+  },
+  {
+    id: 2,
+    childName: "Liam",
+    game: "Letter Hunt",
+    score: 88,
+    duration: "12 min",
+    timestamp: "4 hours ago",
+    skillsImproved: ["Reading", "Recognition"],
+  },
+  {
+    id: 3,
+    childName: "Emma",
+    game: "Shape Sorter",
+    score: 92,
+    duration: "10 min",
+    timestamp: "1 day ago",
+    skillsImproved: ["Geometry", "Logic"],
+  },
+]
+
+const achievements = [
+  {
+    id: 1,
+    title: "Math Wizard",
+    description: "Completed 10 math games",
+    icon: "🧙‍♂️",
+    earnedBy: "Emma",
+    earnedDate: "Yesterday",
+  },
+  {
+    id: 2,
+    title: "Reading Star",
+    description: "Read 5 stories this week",
+    icon: "⭐",
+    earnedBy: "Liam",
+    earnedDate: "2 days ago",
+  },
+  {
+    id: 3,
+    title: "Consistent Player",
+    description: "Played for 5 days in a row",
+    icon: "🔥",
+    earnedBy: "Emma",
+    earnedDate: "3 days ago",
+  },
+]
+
+const skillProgress = [
+  { skill: "Mathematics", progress: 75, level: "Intermediate" },
+  { skill: "Reading", progress: 60, level: "Beginner" },
+  { skill: "Problem Solving", progress: 85, level: "Advanced" },
+  { skill: "Memory", progress: 45, level: "Beginner" },
+  { skill: "Logic", progress: 70, level: "Intermediate" },
+]
+
+export default function ParentDashboard() {
+  const [selectedChild, setSelectedChild] = useState(children[0])
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <Star className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">KidsLearn Parent Portal</h1>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="icon">
+                <Bell className="w-5 h-5" />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Parent" />
+                      <AvatarFallback>P</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">Parent Account</p>
+                      <p className="text-xs leading-none text-muted-foreground">parent@example.com</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Child Selector */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
+            <Select
+              value={selectedChild.id.toString()}
+              onValueChange={(value) => {
+                const child = children.find((c) => c.id.toString() === value)
+                if (child) setSelectedChild(child)
+              }}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select child" />
+              </SelectTrigger>
+              <SelectContent>
+                {children.map((child) => (
+                  <SelectItem key={child.id} value={child.id.toString()}>
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={child.avatar || "/placeholder.svg"} alt={child.name} />
+                        <AvatarFallback>{child.name[0]}</AvatarFallback>
+                      </Avatar>
+                      <span>
+                        {child.name} (Age {child.age})
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Play Time</CardTitle>
+              <Clock className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{selectedChild.totalPlayTime}</div>
+              <p className="text-xs opacity-80">This week</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Games Completed</CardTitle>
+              <Trophy className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{selectedChild.gamesCompleted}</div>
+              <p className="text-xs opacity-80">+3 from last week</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+              <TrendingUp className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{selectedChild.currentStreak} days</div>
+              <p className="text-xs opacity-80">Keep it up!</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Current Level</CardTitle>
+              <Star className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">Level {selectedChild.level}</div>
+              <p className="text-xs opacity-80">2 more to next level</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="progress" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="progress">Progress</TabsTrigger>
+            <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="progress" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Skill Progress */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Skill Development</CardTitle>
+                  <CardDescription>{selectedChild.name}'s progress across different learning areas</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {skillProgress.map((skill, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">{skill.skill}</span>
+                        <Badge variant="secondary">{skill.level}</Badge>
+                      </div>
+                      <Progress value={skill.progress} className="h-2" />
+                      <div className="text-xs text-muted-foreground text-right">{skill.progress}% Complete</div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Weekly Progress Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Weekly Activity</CardTitle>
+                  <CardDescription>Games played and time spent each day</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, index) => (
+                      <div key={day} className="flex items-center space-x-4">
+                        <div className="w-12 text-sm font-medium">{day}</div>
+                        <div className="flex-1">
+                          <Progress value={Math.random() * 100} className="h-3" />
+                        </div>
+                        <div className="w-16 text-sm text-muted-foreground text-right">
+                          {Math.floor(Math.random() * 60 + 10)} min
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="activity" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Latest games and activities completed by your children</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-center space-x-4 p-4 border rounded-lg">
+                      <Avatar>
+                        <AvatarImage src="/placeholder.svg?height=40&width=40" alt={activity.childName} />
+                        <AvatarFallback>{activity.childName[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{activity.childName}</span>
+                          <span className="text-muted-foreground">played</span>
+                          <span className="font-medium text-purple-600">{activity.game}</span>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span>Score: {activity.score}%</span>
+                          <span>Duration: {activity.duration}</span>
+                          <span>{activity.timestamp}</span>
+                        </div>
+                        <div className="flex space-x-1">
+                          {activity.skillsImproved.map((skill, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="achievements" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Achievements</CardTitle>
+                <CardDescription>Badges and milestones earned by your children</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {achievements.map((achievement) => (
+                    <div key={achievement.id} className="p-4 border rounded-lg text-center space-y-2">
+                      <div className="text-4xl">{achievement.icon}</div>
+                      <h3 className="font-semibold">{achievement.title}</h3>
+                      <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                      <div className="text-xs text-muted-foreground">
+                        Earned by {achievement.earnedBy} • {achievement.earnedDate}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Parental Controls</CardTitle>
+                  <CardDescription>Manage your child's gaming experience</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">Daily Time Limit</div>
+                      <div className="text-sm text-muted-foreground">Maximum play time per day</div>
+                    </div>
+                    <Select defaultValue="60">
+                      <SelectTrigger className="w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">30 min</SelectItem>
+                        <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="90">1.5 hours</SelectItem>
+                        <SelectItem value="120">2 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">Difficulty Level</div>
+                      <div className="text-sm text-muted-foreground">Adjust game difficulty</div>
+                    </div>
+                    <Select defaultValue="auto">
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                        <SelectItem value="auto">Auto-adjust</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Notifications</CardTitle>
+                  <CardDescription>Stay updated on your child's progress</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">Daily Progress Reports</div>
+                      <div className="text-sm text-muted-foreground">Get daily summaries via email</div>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Enable
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">Achievement Alerts</div>
+                      <div className="text-sm text-muted-foreground">Notify when badges are earned</div>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Enable
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">Weekly Reports</div>
+                      <div className="text-sm text-muted-foreground">Comprehensive weekly analysis</div>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Enable
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  )
+}

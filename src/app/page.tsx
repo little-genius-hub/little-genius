@@ -11,7 +11,6 @@ export default function HomePage() {
   const { state } = useApp()
 
   useEffect(() => {
-    // Register service worker for PWA
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
@@ -27,16 +26,17 @@ export default function HomePage() {
   if (state.isLoading) {
     return <LoadingScreen />
   }
-
   if (!state.user) {
     return <WelcomeScreen />
   }
 
-  if (!state.currentChild && state.user.children.length > 0) {
+  const userChildren = state.user.children || []
+
+  if (!state.currentChild && userChildren.length > 0) {
     return <ChildSelector />
   }
 
-  if (!state.currentChild && state.user.children.length === 0) {
+  if (!state.currentChild && userChildren.length === 0) {
     return <ChildSelector />
   }
 

@@ -26,6 +26,13 @@ interface GameState {
   speechSupported: boolean
 }
 
+type LetterQuestions = {
+  id: string,
+  word: string,
+  level: number,
+  language: string
+}
+
 // Word lists for pronunciation practice
 const PRONUNCIATION_WORDS = {
   en: {
@@ -63,9 +70,17 @@ const PRONUNCIATION_WORDS = {
 }
 
 export default function PronunciationPage() {
+  let [questions, setQuestions] = useState<LetterQuestions[]>([])
   const { state, dispatch } = useApp()
   const { t } = useTranslation(state.language)
   const router = useRouter()
+
+
+  async function fetchWords() {
+    let res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/games/letter/pronounciation`)
+    let data = await res.json()
+    setQuestions(data)
+  }
 
   const [gameState, setGameState] = useState<GameState>({
     currentProblem: 0,
@@ -87,6 +102,7 @@ export default function PronunciationPage() {
       const supported = "webkitSpeechRecognition" in window || "SpeechRecognition" in window
       setGameState((prev) => ({ ...prev, speechSupported: supported }))
     }
+    fetchWords()
     checkSpeechSupport()
   }, [])
 

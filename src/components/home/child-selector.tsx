@@ -164,7 +164,7 @@ export function ChildSelector() {
             ) : (
               <div className="space-y-4">
                 <div className="grid gap-3">
-                  {state.user?.children.map((child) => (
+                  {(state.user?.children || []).map((child) => (
                     <button
                       key={child.id}
                       onClick={() => handleSelectChild(child)}
@@ -193,7 +193,7 @@ export function ChildSelector() {
                   ))}
                 </div>
 
-                {state.user?.children.length === 0 && (
+                {(state.user?.children || []).length === 0 && (
                   <div className="text-center py-8">
                     <User className="mx-auto h-12 w-12 text-gray-300 mb-3" />
                     <p className="text-gray-500">
