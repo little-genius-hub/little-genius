@@ -9,14 +9,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, User, ArrowRight } from "lucide-react"
 import { useApp } from "@/store/app-context"
 import { useTranslation } from "@/lib/i18n"
+import { ClientCookies } from "@/helpers/cookies"
 import type { Child } from "@/types"
 
-export function ChildSelector() {
-  const { state, dispatch } = useApp()
+export function ChildSelector() {  const { state, dispatch, setCurrentChild } = useApp()
   const { t } = useTranslation(state.language)
   const [showAddChild, setShowAddChild] = useState(false)
   const [newChildName, setNewChildName] = useState("")
   const [newChildAge, setNewChildAge] = useState("")
+  const [newChildGrade, setNewChildGrade] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   
     const demoChildProfiles: Child[] = [
@@ -37,8 +38,7 @@ export function ChildSelector() {
       id: "demo2",
       name: "Budi",
       age: 7, 
-      preferredLanguage: "id",
-      progress: {
+      preferredLanguage: "id",      progress: {
         numbers: { level: 3, subLevel: 1, totalScore: 320, completedLevels: [] },
         letters: { level: 2, subLevel: 4, totalScore: 280, completedLevels: [] },
         stories: { readStories: ["story1", "story3", "story4"], favoriteStories: ["story3"] }
@@ -47,23 +47,22 @@ export function ChildSelector() {
       createdAt: new Date(),
     }
   ]
+  
   const handleSelectChild = (child: Child) => {
-    localStorage.setItem('currentChildId', child.id || '')
-    dispatch({ type: "SET_CURRENT_CHILD", payload: child })
+    setCurrentChild(child)
   }
-
   const handleCreateChild = async () => {
-    if (!newChildName.trim() || !newChildAge) return
+    if (!newChildName.trim() || !newChildAge || !newChildGrade.trim()) return
 
     setIsCreating(true)
     try {
-      const response = await fetch("/api/children", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },        body: JSON.stringify({
+      const response = await fetch("/api/user/children", {
+        method: "POST",        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           name: newChildName.trim(),
           age: Number.parseInt(newChildAge),
-          preferredLanguage: state.language,
-        }),
+          grade: newChildGrade.trim(),
+          preferredLanguage: state.language,        }),
       })
 
       if (response.ok) {
@@ -73,8 +72,12 @@ export function ChildSelector() {
           children: [...(state.user!.children || []), newChild],
         }
         dispatch({ type: "SET_USER", payload: updatedUser })
-        localStorage.setItem('currentChildId', newChild.id || '')
-        dispatch({ type: "SET_CURRENT_CHILD", payload: newChild })
+        setCurrentChild(newChild)
+        // Reset form
+        setNewChildName("")
+        setNewChildAge("")
+        setNewChildGrade("")
+        setShowAddChild(false)
       } else {
         console.error("Failed to create child profile")
       }
@@ -84,9 +87,8 @@ export function ChildSelector() {
       setIsCreating(false)
     }
   }
-  const handleSelectDemoChild = (child: Child) => {
-    localStorage.setItem('currentChildId', child.id || '')
-    dispatch({ type: "SET_CURRENT_CHILD", payload: child })
+    const handleSelectDemoChild = (child: Child) => {
+    setCurrentChild(child)
   }
 
   return (
@@ -119,8 +121,7 @@ export function ChildSelector() {
                     }
                     className="bg-white/70"
                   />
-                </div>
-                <div className="space-y-1">
+                </div>                <div className="space-y-1">
                   <Label htmlFor="age">{state.language === "en" ? "Child's Age" : "Usia Anak"}</Label>
                   <Input
                     id="age"
@@ -133,18 +134,31 @@ export function ChildSelector() {
                     className="bg-white/70"
                   />
                 </div>
+                <div className="space-y-1">
+                  <Label htmlFor="grade">{state.language === "en" ? "Grade" : "Kelas"}</Label>
+                  <Input
+                    id="grade"
+                    value={newChildGrade}
+                    onChange={(e) => setNewChildGrade(e.target.value)}
+                    placeholder={state.language === "en" ? "e.g., Kindergarten, Grade 1" : "mis., TK, Kelas 1"}
+                    className="bg-white/70"
+                  />
+                </div>
 
-                <div className="flex gap-2 pt-4">
-                  <Button
+                <div className="flex gap-2 pt-4">                  <Button
                     variant="outline"
-                    onClick={() => setShowAddChild(false)}
+                    onClick={() => {
+                      setShowAddChild(false)
+                      setNewChildName("")
+                      setNewChildAge("")
+                      setNewChildGrade("")
+                    }}
                     className="flex-1"
                   >
                     {state.language === "en" ? "Cancel" : "Batal"}
-                  </Button>
-                  <Button
+                  </Button>                  <Button
                     onClick={handleCreateChild}
-                    disabled={isCreating || !newChildName.trim() || !newChildAge}
+                    disabled={isCreating || !newChildName.trim() || !newChildAge || !newChildGrade.trim()}
                     className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   >
                     {isCreating ? (

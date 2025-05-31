@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ClientCookies } from "@/helpers/cookies";
+import { ApiClient } from "@/helpers/api-client";
 import ChildrenManager from "@/components/ChildrenManager";
 
 interface Child {
@@ -33,14 +35,9 @@ export default function ProfilePage() {
   }, []);
 
   const loadUserProfile = async () => {
-    setIsLoading(true);
-    try {
+    setIsLoading(true);    try {
       // Implement your API call to get user profile
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Adjust based on your auth implementation
-        },
-      });
+      const response = await ApiClient.getUserProfile();
 
       if (!response.ok) throw new Error('Failed to load profile');
 
@@ -63,17 +60,8 @@ export default function ProfilePage() {
       // Update local state immediately for better UX
       if (userProfile) {
         setUserProfile({ ...userProfile, children });
-      }
-
-      // Send update to server
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/children`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Adjust based on your auth implementation
-        },
-        body: JSON.stringify({ children }),
-      });
+      }      // Send update to server
+      const response = await ApiClient.updateChildren(children);
 
       if (!response.ok) throw new Error('Failed to update children');
 

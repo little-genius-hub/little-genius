@@ -77,7 +77,6 @@ class UserModel {
     const result = await collection.insertOne(newUser);
     return result;
   }
-
   static async login(user: LoginUser) {
     LoginSchema.parse(user);
     const collection = await this.collection();
@@ -87,20 +86,14 @@ class UserModel {
     if (!existUser) throw { status: 404, message: "User not found!" };
     
     const isValid = comparePassword(user.password, existUser.password);
-    if (!isValid) throw { status: 403, message: "Invalid password" };
-    
-    const access_token = signToken({
-      userId: existUser._id,
+    if (!isValid) throw { status: 403, message: "Invalid password" };    const access_token = await signToken({
+      userId: existUser._id.toString(),
       name: existUser.name,
       email: existUser.email,
     });
 
-    const cookieStore = await cookies();
-    cookieStore.set("Authorization", `Bearer ${access_token}`);
-
-    return { access_token };
-  }
-  static async findById(id: string) {
+    return access_token;
+  }  static async findById(id: string) {
     const collection = await this.collection();
     return await collection.findOne({ _id: new ObjectId(id) });
   }
