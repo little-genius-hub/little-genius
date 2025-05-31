@@ -2,6 +2,8 @@
 
 import type React from "react"
 import { createContext, useContext, useReducer, useEffect } from "react"
+import { ClientCookies } from "@/helpers/cookies"
+import { clearAuthCookies } from "@/helpers/clear-cookies"
 import type { User, Child, Language } from "@/types"
 
 interface AppState {
@@ -83,7 +85,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
     return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
   }, [])
-
   // Load user session on mount
   useEffect(() => {
     const loadUserSession = async () => {
@@ -92,6 +93,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           const userData = await response.json()
           dispatch({ type: "SET_USER", payload: userData })
+          
+          // After loading user, check for saved child selection in cookies
+          const savedChildId = ClientCookies.getCurrentChildId()
+          if (savedChildId && userData.children) {
+            const savedChild = userData.children.find((child: Child) => child.id === savedChildId)
+            if (savedChild) {
+              dispatch({ type: "SET_CURRENT_CHILD", payload: savedChild })
+            }
+          }
         } else {
           // Handle non-200 responses (like 404)
           console.log("No active session found")
@@ -116,8 +126,7 @@ export function useApp() {
   const context = useContext(AppContext)
   if (!context) {
     throw new Error("useApp must be used within an AppProvider")
-  }
-    // Auth helper functions
+  }  // Auth helper functions
   const login = async (user: User) => {
     context.dispatch({ type: "SET_USER", payload: user })
   }
@@ -127,18 +136,28 @@ export function useApp() {
       await fetch("/api/auth/logout", { method: "POST" })
       context.dispatch({ type: "SET_USER", payload: null })
       context.dispatch({ type: "SET_CURRENT_CHILD", payload: null })
-      // Clear localStorage to ensure fresh child selection on next login
-      localStorage.removeItem('currentChildId')
+      // Clear cookies to ensure fresh child selection on next login
+      ClientCookies.removeCurrentChildId()
       // Redirect to login page after logout
       window.location.href = "/login"
     } catch (error) {
       console.error("Logout failed:", error)
     }
   }
-  
-  return { 
+
+  const setCurrentChild = (child: Child | null) => {
+    context.dispatch({ type: "SET_CURRENT_CHILD", payload: child })
+    if (child?.id) {
+      ClientCookies.setCurrentChildId(child.id)
+    } else {
+      ClientCookies.removeCurrentChildId()
+    }
+  }
+    return { 
     ...context, 
     login, 
-    logout 
+    logout,
+    setCurrentChild,
+    clearAuthCookies // For development debugging
   }
 }

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "./use-toast";
+import { ClientCookies } from "@/helpers/cookies";
+import { ApiClient } from "@/helpers/api-client";
 
 interface Child {
   id?: string;
@@ -14,16 +16,10 @@ interface Child {
 export function useChildren() {
   const [children, setChildren] = useState<Child[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
-  const loadChildren = async () => {
+  const { toast } = useToast();  const loadChildren = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/children`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await ApiClient.getChildren();
 
       if (!response.ok) throw new Error('Failed to load children');
 
@@ -38,19 +34,10 @@ export function useChildren() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const addChild = async (child: Omit<Child, 'id'>) => {
+  };  const addChild = async (child: Omit<Child, 'id'>) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/children`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(child),
-      });
+      const response = await ApiClient.addChild(child);
 
       if (!response.ok) throw new Error('Failed to add child');
 
@@ -70,19 +57,10 @@ export function useChildren() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const updateChild = async (id: string, updatedChild: Omit<Child, 'id'>) => {
+  };  const updateChild = async (id: string, updatedChild: Omit<Child, 'id'>) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/children/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(updatedChild),
-      });
+      const response = await ApiClient.updateChild(id, updatedChild);
 
       if (!response.ok) throw new Error('Failed to update child');
 
@@ -102,17 +80,10 @@ export function useChildren() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const deleteChild = async (id: string) => {
+  };  const deleteChild = async (id: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/children/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await ApiClient.deleteChild(id);
 
       if (!response.ok) throw new Error('Failed to delete child');
 
@@ -131,19 +102,10 @@ export function useChildren() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const updateChildren = async (newChildren: Child[]) => {
+  };  const updateChildren = async (newChildren: Child[]) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/children`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ children: newChildren }),
-      });
+      const response = await ApiClient.updateChildren(newChildren);
 
       if (!response.ok) throw new Error('Failed to update children');
 
@@ -163,10 +125,9 @@ export function useChildren() {
       setIsLoading(false);
     }
   };
-
   useEffect(() => {
     // Only load children if user is authenticated
-    const token = localStorage.getItem('token');
+    const token = ClientCookies.getAuthToken();
     if (token) {
       loadChildren();
     }

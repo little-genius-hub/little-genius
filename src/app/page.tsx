@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useApp } from "@/store/app-context"
+import { ClientCookies } from "@/helpers/cookies"
 import { LoadingScreen } from "@/components/common/loading-screen"
 import { ChildSelector } from "@/components/home/child-selector"
 import { MainMenu } from "@/components/home/main-menu"
@@ -29,12 +30,11 @@ export default function HomePage() {
     }
   }, [state.isLoading, state.user, router])
   // Reset current child when user first logs in to always show child selector
-  useEffect(() => {
-    // If user just logged in but has a currentChild from previous session, clear it
+  useEffect(() => {    // If user just logged in but has a currentChild from previous session, clear it
     // This ensures user always sees child selector first after fresh login
     if (state.user && !state.isLoading) {
       // Check if we're coming from a fresh login (no stored currentChild preference)
-      const shouldResetChild = !localStorage.getItem('currentChildId')
+      const shouldResetChild = !ClientCookies.getCurrentChildId()
       if (shouldResetChild && state.currentChild) {
         dispatch({ type: "SET_CURRENT_CHILD", payload: null })
       }

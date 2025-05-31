@@ -35,8 +35,7 @@ export function MainMenu() {
     router.push("/parent")
   }
 
-  const gameMenuItems = [
-    {
+  const gameMenuItems = [    {
       id: "numbers",
       title: t("numbers"),
       description: state.language === "en" ? "Learn math with fun games" : "Belajar matematika dengan permainan seru",
@@ -45,9 +44,8 @@ export function MainMenu() {
       bgColor: "bg-blue-50",
       textColor: "text-blue-700",
       route: "/games/numbers",
-      progress: state.currentChild?.progress.numbers.level || 1,
-    },
-    {
+      progress: (state.currentChild?.progress.numbers || { level: 1 }).level,
+    },    {
       id: "letters",
       title: t("letters"),
       description: state.language === "en" ? "Practice words and pronunciation" : "Latihan kata dan pelafalan",
@@ -56,9 +54,8 @@ export function MainMenu() {
       bgColor: "bg-green-50",
       textColor: "text-green-700",
       route: "/games/letters",
-      progress: state.currentChild?.progress.letters.level || 1,
-    },
-    {
+      progress: (state.currentChild?.progress.letters || { level: 1 }).level,
+    },    {
       id: "stories",
       title: t("fairytales"),
       description: state.language === "en" ? "Listen to magical stories" : "Dengarkan cerita-cerita ajaib",
@@ -67,7 +64,7 @@ export function MainMenu() {
       bgColor: "bg-purple-50",
       textColor: "text-purple-700",
       route: "/stories",
-      progress: state.currentChild?.progress.stories.readStories.length || 0,
+      progress: (state.currentChild?.progress.stories || { readStories: [] }).readStories.length,
     },
   ]
 
@@ -88,10 +85,12 @@ export function MainMenu() {
             </Avatar>
             <div>
               <h2 className="text-xl font-bold text-white">{t("hello")} {state.currentChild?.name}!</h2>
-              <div className="flex items-center gap-1.5">
-                <Badge className="bg-yellow-400/80 hover:bg-yellow-500 text-yellow-950">
+              <div className="flex items-center gap-1.5">                <Badge className="bg-yellow-400/80 hover:bg-yellow-500 text-yellow-950">
                   <Trophy className="h-3 w-3 mr-1" />
-                  {t("level")} {state.currentChild?.progress ? Math.max(state.currentChild.progress.numbers.level, state.currentChild.progress.letters.level) : 1}
+                  {t("level")} {state.currentChild?.progress ? Math.max(
+                    (state.currentChild.progress.numbers || { level: 1 }).level,
+                    (state.currentChild.progress.letters || { level: 1 }).level
+                  ) : 1}
                 </Badge>
                 <Badge className="bg-white/20 hover:bg-white/30 text-white">
                   {state.language === "en" ? "Age" : "Usia"}: {state.currentChild?.age || "?"}

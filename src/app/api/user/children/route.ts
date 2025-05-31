@@ -20,26 +20,43 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
 });
 
 // POST /api/user/children - Add a new child for the authenticated user
-export const POST = withAuth(async (request: NextRequest, { user }) => {
-  try {
+export const POST = withAuth(async (request: NextRequest, { user }) => {  try {
     const childData = await request.json();
-    const { name, age, grade, birthDate } = childData;
+    const { name, age, grade, birthDate, preferredLanguage } = childData;
 
-    // Validate required fields
     if (!name || !age || !grade) {
       return Response.json(
         { error: "Name, age, and grade are required" },
         { status: 400 }
       );
-    }
-
-    // Create new child object
+    }   
     const newChild = {
       id: new ObjectId().toString(),
       name,
       age: parseInt(age),
       grade,
       birthDate: birthDate || null,
+      preferredLanguage: preferredLanguage || "en",
+      progress: {
+        numbers: {
+          level: 1,
+          subLevel: 1,
+          totalScore: 0,
+          completedLevels: []
+        },
+        letters: {
+          level: 1,
+          subLevel: 1,
+          totalScore: 0,
+          completedLevels: []
+        },
+        stories: {
+          readStories: [],
+          favoriteStories: []
+        }
+      },
+      achievements: [],
+      createdAt: new Date()
     };
 
     // Get current user and update children array
