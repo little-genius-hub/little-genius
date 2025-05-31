@@ -4,15 +4,37 @@ import UserModel from "@/db/models/UserModel";
 import { ObjectId } from "mongodb";
 
 // GET /api/user/children - Get all children for the authenticated user
-export const GET = withAuth(async (request: NextRequest, { user }) => {
-  try {
+export const GET = withAuth(async (request: NextRequest, { user }) => {  try {
     const userData = await UserModel.findById(user.userId);
     
     if (!userData) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
-    return Response.json({ children: userData.children || [] });
+    // Ensure all children have proper progress structure
+    const childrenWithProgress = (userData.children || []).map((child: any) => ({
+      ...child,
+      progress: child.progress || {
+        numbers: {
+          level: 1,
+          subLevel: 1,
+          totalScore: 0,
+          completedLevels: []
+        },
+        letters: {
+          level: 1,
+          subLevel: 1,
+          totalScore: 0,
+          completedLevels: []
+        },
+        stories: {
+          readStories: [],
+          favoriteStories: []
+        }
+      }
+    }));
+
+    return Response.json({ children: childrenWithProgress });
   } catch (error) {
     console.error("Error fetching children:", error);
     return Response.json({ error: "Failed to fetch children" }, { status: 500 });

@@ -144,11 +144,36 @@ export function useApp() {
       console.error("Logout failed:", error)
     }
   }
-
   const setCurrentChild = (child: Child | null) => {
-    context.dispatch({ type: "SET_CURRENT_CHILD", payload: child })
-    if (child?.id) {
-      ClientCookies.setCurrentChildId(child.id)
+    // Ensure child has proper progress structure if it exists
+    let childWithProgress = child;
+    if (child && !child.progress) {
+      childWithProgress = {
+        ...child,
+        progress: {
+          numbers: {
+            level: 1,
+            subLevel: 1,
+            totalScore: 0,
+            completedLevels: []
+          },
+          letters: {
+            level: 1,
+            subLevel: 1,
+            totalScore: 0,
+            completedLevels: []
+          },
+          stories: {
+            readStories: [],
+            favoriteStories: []
+          }
+        }
+      };
+    }
+    
+    context.dispatch({ type: "SET_CURRENT_CHILD", payload: childWithProgress })
+    if (childWithProgress?.id) {
+      ClientCookies.setCurrentChildId(childWithProgress.id)
     } else {
       ClientCookies.removeCurrentChildId()
     }
