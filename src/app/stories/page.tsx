@@ -1,11 +1,13 @@
 "use client"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, BookOpen, Play, Heart, Star } from "lucide-react"
+import { ArrowLeft, BookOpen, Play, Heart, Star, Sparkles, Plus } from "lucide-react"
 import { useApp } from "@/store/app-context"
 import { useTranslation } from "@/lib/i18n"
+import { useToast } from "@/hooks/use-toast"
 
 const SAMPLE_STORIES = [
   {
@@ -50,18 +52,95 @@ export default function StoriesPage() {
   const { state } = useApp()
   const { t } = useTranslation(state.language)
   const router = useRouter()
-
+  const { toast } = useToast()
+  
+  const [generatedStories, setGeneratedStories] = useState<any[]>([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  
+  useEffect(() => {
+    // Load user's generated stories
+    const loadGeneratedStories = async () => {
+      try {
+        const response = await fetch('/api/stories/user')
+        if (response.ok) {
+          const { stories } = await response.json()
+          setGeneratedStories(stories || [])
+        }
+      } catch (error) {
+        console.error('Error loading generated stories:', error)
+      }
+    }
+    
+    if (state.currentChild) {
+      loadGeneratedStories()
+    }
+  }, [state.currentChild])
+  
   const readStories = state.currentChild?.progress.stories.readStories || []
   const favoriteStories = state.currentChild?.progress.stories.favoriteStories || []
-
   const handleStorySelect = (storyId: string) => {
-    router.push(`/stories/${storyId}`)
+    // Check if it's a generated story
+    const isGenerated = generatedStories.some(story => story.id === storyId || story._id === storyId)
+    
+    if (isGenerated) {
+      router.push(`/stories/generated/${storyId}`)
+    } else {
+      router.push(`/stories/${storyId}`)
+    }
   }
 
   const toggleFavorite = (storyId: string) => {
     // This would update the favorites in the database
     console.log("Toggle favorite:", storyId)
   }
+
+  const handleGenerateStory = async () => {
+    setIsGenerating(true)
+    try {
+      const response = await fetch('/api/stories/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          language: state.language
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate story')
+      }
+
+      const { story } = await response.json()
+      
+      // Add the new story to our generated stories list
+      setGeneratedStories(prev => [story, ...prev])
+      
+      toast({
+        title: t("storyGenerated"),
+        description: state.language === "en" 
+          ? "Your new adventure story is ready!" 
+          : "Cerita petualangan baru Anda sudah siap!",
+      })
+
+      // Navigate to the new story
+      router.push(`/stories/generated/${story.id}`)
+    } catch (error) {
+      console.error('Error generating story:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: state.language === "en" 
+          ? "Failed to generate story. Please try again." 
+          : "Gagal membuat cerita. Silakan coba lagi.",
+      })
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  // Combine sample stories with generated stories
+  const allStories = [...generatedStories, ...SAMPLE_STORIES]
 
   if (!state.currentChild) {
     router.push("/")
@@ -101,8 +180,7 @@ export default function StoriesPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
-        {/* Stats Card */}
+      <div className="max-w-4xl mx-auto p-4 space-y-6">        {/* Stats Card */}
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl overflow-hidden hover:shadow-blue-200/20 hover:shadow-2xl transition-all duration-300">
           <CardContent className="p-6">
             <div className="grid grid-cols-3 gap-4 text-center">
@@ -115,43 +193,83 @@ export default function StoriesPage() {
                 <p className="text-sm text-gray-600 font-nunito">{state.language === "en" ? "Favorites" : "Favorit"}</p>
               </div>
               <div className="p-3 rounded-lg hover:bg-purple-50 transition-colors duration-300">
-                <div className="text-2xl font-bold text-purple-600">{SAMPLE_STORIES.length}</div>
+                <div className="text-2xl font-bold text-purple-600">{allStories.length}</div>
                 <p className="text-sm text-gray-600 font-nunito">{state.language === "en" ? "Available" : "Tersedia"}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Stories Grid */}
+        {/* Generate New Story Button */}
+        <Card className="bg-gradient-to-r from-emerald-400 via-cyan-500 to-blue-500 border-0 shadow-xl rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+          <CardContent className="p-6 text-center">
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-2 font-nunito">
+                  {t("generateNewStory")}
+                </h3>
+                <p className="text-white/90 text-sm font-nunito">
+                  {state.language === "en" 
+                    ? "Create a magical adventure story with AI!" 
+                    : "Buat cerita petualangan ajaib dengan AI!"}
+                </p>
+              </div>
+              <Button
+                onClick={handleGenerateStory}
+                disabled={isGenerating}
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 hover:border-white/50 transition-all duration-300 hover:scale-105"
+                size="lg"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                    {t("generatingStory")}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    {state.language === "en" ? "Generate" : "Buat"}
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>        {/* Stories Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {SAMPLE_STORIES.map((story) => {
-            const isRead = readStories.includes(story.id)
-            const isFavorite = favoriteStories.includes(story.id)
+          {allStories.map((story) => {
+            const storyId = story._id || story.id
+            const isRead = readStories.includes(storyId)
+            const isFavorite = favoriteStories.includes(storyId)
+            const isGenerated = !SAMPLE_STORIES.find(s => s.id === storyId)
 
             return (
               <Card
-                key={story.id}
+                key={storyId}
                 className="cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-white/95 backdrop-blur-md border-0 rounded-xl overflow-hidden hover:shadow-purple-200/30"
-                onClick={() => handleStorySelect(story.id)}
+                onClick={() => handleStorySelect(storyId)}
               >
                 <CardHeader className="p-0">
                   <div className="relative overflow-hidden">
                     <img
                       src={story.illustration || "/placeholder.svg"}
-                      alt={story.title[state.language]}
+                      alt={story.title[state.language] || story.title?.id || story.title?.en}
                       className="w-full h-48 object-cover transition-transform duration-700 hover:scale-110"
                     />
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-black/5 to-transparent opacity-60"></div>
                     <div className="absolute top-2 right-2 flex gap-2">
+                      {isGenerated && (
+                        <Badge className="bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
+                          {state.language === "en" ? "AI Generated" : "Dibuat AI"}
+                        </Badge>
+                      )}
                       {isRead && (
                         <Badge className="bg-green-500 text-white shadow-lg shadow-green-500/20">{state.language === "en" ? "Read" : "Dibaca"}</Badge>
                       )}
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
+                        size="sm"                        onClick={(e) => {
                           e.stopPropagation()
-                          toggleFavorite(story.id)
+                          toggleFavorite(storyId)
                         }}
                         className="h-8 w-8 p-0 bg-white/80 hover:bg-white shadow-lg hover:shadow-pink-200/30 transition-all duration-300"
                       >
@@ -162,8 +280,12 @@ export default function StoriesPage() {
                 </CardHeader>
                 <CardContent className="p-5 space-y-3">
                   <div>
-                    <h3 className="font-bold text-lg text-gray-800 mb-1 font-nunito">{story.title[state.language]}</h3>
-                    <p className="text-sm text-gray-600 font-nunito">{story.description[state.language]}</p>
+                    <h3 className="font-bold text-lg text-gray-800 mb-1 font-nunito">
+                      {story.title[state.language] || story.title?.id || story.title?.en}
+                    </h3>
+                    <p className="text-sm text-gray-600 font-nunito">
+                      {story.description[state.language] || story.description?.id || story.description?.en}
+                    </p>
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-gray-500 font-nunito">
