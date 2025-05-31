@@ -23,6 +23,50 @@ type AppAction =
   | { type: "SET_PARENT_MODE"; payload: boolean }
   | { type: "SET_PWA_PROMPT"; payload: any }
   | { type: "UPDATE_CHILD_PROGRESS"; payload: { childId: string; progress: any } }
+  | { type: "LOAD_FROM_STORAGE"; payload: Partial<AppState> }
+
+const STORAGE_KEY = "little-genius-app-state"
+
+// Helper functions for localStorage
+const saveToStorage = (state: AppState) => {
+  try {
+    if (typeof window !== "undefined") {
+      const stateToSave = {
+        user: state.user,
+        currentChild: state.currentChild,
+        language: state.language,
+        isParentMode: state.isParentMode,
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave))
+    }
+  } catch (error) {
+    console.error("Failed to save to localStorage:", error)
+  }
+}
+
+const loadFromStorage = (): Partial<AppState> | null => {
+  try {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        return JSON.parse(stored)
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load from localStorage:", error)
+  }
+  return null
+}
+
+const clearStorage = () => {
+  try {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  } catch (error) {
+    console.error("Failed to clear localStorage:", error)
+  }
+}
 
 const initialState: AppState = {
   user: null,
@@ -43,19 +87,27 @@ let sessionCache: {
 const SESSION_CACHE_DURATION = 30000 // 30 seconds
 
 function appReducer(state: AppState, action: AppAction): AppState {
+  let newState: AppState
+  
   switch (action.type) {
     case "SET_USER":
-      return { ...state, user: action.payload }
+      newState = { ...state, user: action.payload }
+      break
     case "SET_CURRENT_CHILD":
-      return { ...state, currentChild: action.payload }
+      newState = { ...state, currentChild: action.payload }
+      break
     case "SET_LANGUAGE":
-      return { ...state, language: action.payload }
+      newState = { ...state, language: action.payload }
+      break
     case "SET_LOADING":
-      return { ...state, isLoading: action.payload }
+      newState = { ...state, isLoading: action.payload }
+      break
     case "SET_PARENT_MODE":
-      return { ...state, isParentMode: action.payload }
+      newState = { ...state, isParentMode: action.payload }
+      break
     case "SET_PWA_PROMPT":
-      return { ...state, pwaInstallPrompt: action.payload }
+      newState = { ...state, pwaInstallPrompt: action.payload }
+      break
     case "UPDATE_CHILD_PROGRESS":
       if (!state.user) return state
       const updatedChildren = (state.user.children || []).map((child) =>
@@ -63,7 +115,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ? { ...child, progress: { ...child.progress, ...action.payload.progress } }
           : child,
       )
-      return {
+      newState = {
         ...state,
         user: { ...state.user, children: updatedChildren },
         currentChild:
@@ -71,9 +123,20 @@ function appReducer(state: AppState, action: AppAction): AppState {
             ? { ...state.currentChild, progress: { ...state.currentChild.progress, ...action.payload.progress } }
             : state.currentChild,
       }
+      break
+    case "LOAD_FROM_STORAGE":
+      newState = { ...state, ...action.payload }
+      break
     default:
       return state
   }
+  
+  // Save to localStorage for most actions (except loading states and PWA prompt)
+  if (action.type !== "SET_LOADING" && action.type !== "SET_PWA_PROMPT") {
+    saveToStorage(newState)
+  }
+  
+  return newState
 }
 
 const AppContext = createContext<{
@@ -83,6 +146,14 @@ const AppContext = createContext<{
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState)
+
+  // Load from localStorage on initial mount
+  useEffect(() => {
+    const storedState = loadFromStorage()
+    if (storedState) {
+      dispatch({ type: "LOAD_FROM_STORAGE", payload: storedState })
+    }
+  }, [])
 
   // PWA install prompt handling
   useEffect(() => {
@@ -99,6 +170,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     
     const loadUserSession = async () => {
       try {
+        // Check if we already have user data in localStorage
+        const storedState = loadFromStorage()
+        if (storedState?.user && storedState?.currentChild) {
+          // We have stored data, validate it's still fresh by checking session
+          try {
+            const response = await fetch("/api/auth/session", {
+              cache: 'no-cache',
+              credentials: 'include'
+            })
+            
+            if (!isMounted) return
+            
+            if (response.ok) {
+              // Session is valid, keep using stored data
+              dispatch({ type: "SET_LOADING", payload: false })
+              return
+            } else {
+              // Session expired, clear stored data
+              clearStorage()
+            }
+          } catch (error) {
+            console.error("Session validation failed:", error)
+            // If validation fails, try to refresh from server
+          }
+        }
+        
         // Check cache first
         if (sessionCache && sessionCache.isValid()) {
           if (isMounted) {
@@ -150,19 +247,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // Handle non-200 responses (like 404)
           console.log("No active session found")
           
-          // Update cache with null user
+          // Update cache with null user and clear storage
           sessionCache = {
             userData: null,
             timestamp: Date.now(),
             isValid: () => Date.now() - sessionCache!.timestamp < SESSION_CACHE_DURATION
           }
           
+          clearStorage()
           dispatch({ type: "SET_USER", payload: null })
         }
       } catch (error) {
         console.error("Failed to load user session:", error)
-        // Don't crash the app, just set user to null
+        // Don't crash the app, just set user to null and clear storage
         if (isMounted) {
+          clearStorage()
           dispatch({ type: "SET_USER", payload: null })
         }
       } finally {
@@ -190,12 +289,13 @@ export function useApp() {
   const login = async (user: User) => {
     context.dispatch({ type: "SET_USER", payload: user })
   }
-    const logout = async () => {
+  const logout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" })
       
-      // Clear session cache
+      // Clear session cache and localStorage
       sessionCache = null
+      clearStorage()
       
       context.dispatch({ type: "SET_USER", payload: null })
       context.dispatch({ type: "SET_CURRENT_CHILD", payload: null })

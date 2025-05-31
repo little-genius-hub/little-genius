@@ -54,10 +54,18 @@ export default function StoriesPage() {
   const { t } = useTranslation(state.language)
   const router = useRouter()
   const { toast } = useToast()
-  
-  const [stories, setStories] = useState<Story[]>([])
+    const [stories, setStories] = useState<Story[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
+
+  // Handle navigation when currentChild is not available
+  useEffect(() => {
+    // Hanya redirect jika loading selesai dan tidak ada currentChild
+    if (!state.isLoading && !state.currentChild) {
+      router.push("/")
+    }
+  }, [state.currentChild, router, state.isLoading])
+
   useEffect(() => {
     const loadStories = async () => {
       try {
@@ -207,12 +215,18 @@ export default function StoriesPage() {
       case 'family': return '👨‍👩‍👧‍👦'
       case 'nature': return '🌳'
       default: return '📚'
-    }
-  }
+    }  }
 
+  // Show loading while checking for currentChild
   if (!state.currentChild) {
-    router.push("/")
-    return null
+    return (
+      <div className="min-h-screen bg-gradient-radial from-indigo-400 via-purple-500 to-pink-500 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-4" />
+          <p className="text-white text-lg font-nunito">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
