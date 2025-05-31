@@ -19,7 +19,6 @@ export function ChildSelector() {
   const [newChildAge, setNewChildAge] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   
-  // Demo child profiles for testing
     const demoChildProfiles: Child[] = [
     {
       id: "demo1",
@@ -48,8 +47,8 @@ export function ChildSelector() {
       createdAt: new Date(),
     }
   ]
-
   const handleSelectChild = (child: Child) => {
+    localStorage.setItem('currentChildId', child.id || '')
     dispatch({ type: "SET_CURRENT_CHILD", payload: child })
   }
 
@@ -60,8 +59,7 @@ export function ChildSelector() {
     try {
       const response = await fetch("/api/children", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        headers: { "Content-Type": "application/json" },        body: JSON.stringify({
           name: newChildName.trim(),
           age: Number.parseInt(newChildAge),
           preferredLanguage: state.language,
@@ -70,12 +68,12 @@ export function ChildSelector() {
 
       if (response.ok) {
         const newChild = await response.json()
-        // Update user with new child
         const updatedUser = {
           ...state.user!,
           children: [...(state.user!.children || []), newChild],
         }
         dispatch({ type: "SET_USER", payload: updatedUser })
+        localStorage.setItem('currentChildId', newChild.id || '')
         dispatch({ type: "SET_CURRENT_CHILD", payload: newChild })
       } else {
         console.error("Failed to create child profile")
@@ -86,9 +84,8 @@ export function ChildSelector() {
       setIsCreating(false)
     }
   }
-
-  // Select a demo child profile
   const handleSelectDemoChild = (child: Child) => {
+    localStorage.setItem('currentChildId', child.id || '')
     dispatch({ type: "SET_CURRENT_CHILD", payload: child })
   }
 

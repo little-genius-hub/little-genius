@@ -117,16 +117,18 @@ export function useApp() {
   if (!context) {
     throw new Error("useApp must be used within an AppProvider")
   }
-  
-  // Auth helper functions
+    // Auth helper functions
   const login = async (user: User) => {
     context.dispatch({ type: "SET_USER", payload: user })
   }
-    const logout = async () => {
+  
+  const logout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" })
       context.dispatch({ type: "SET_USER", payload: null })
       context.dispatch({ type: "SET_CURRENT_CHILD", payload: null })
+      // Clear localStorage to ensure fresh child selection on next login
+      localStorage.removeItem('currentChildId')
       // Redirect to login page after logout
       window.location.href = "/login"
     } catch (error) {

@@ -36,7 +36,10 @@ export default function Login() {
   const { toast } = useToast();
 
   const toggleLanguage = () => {
-    dispatch({ type: "SET_LANGUAGE", payload: state.language === "en" ? "id" : "en" })
+    dispatch({
+      type: "SET_LANGUAGE",
+      payload: state.language === "en" ? "id" : "en",
+    });
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -64,15 +67,12 @@ export default function Login() {
       );
 
       if (!res.ok) throw await res.json();
-
       toast({
         title: "Success!",
         description: "Login successful!",
       });
 
-      // Redirect to home page
-      router.push("/");
-      router.refresh();
+      window.location.href = "/";
     } catch (err) {
       const error = err as ApiError;
       let errorMessage = "Login failed";
@@ -134,26 +134,37 @@ export default function Login() {
             <div className="grid grid-cols-2 gap-3">
               <div className="text-center p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-all">
                 <Calculator className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-xs font-medium text-blue-800">{t("numbers")}</p>
+                <p className="text-xs font-medium text-blue-800">
+                  {t("numbers")}
+                </p>
               </div>
               <div className="text-center p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-all">
                 <BookOpen className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                <p className="text-xs font-medium text-green-800">{t("letters")}</p>
+                <p className="text-xs font-medium text-green-800">
+                  {t("letters")}
+                </p>
               </div>
               <div className="text-center p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-all">
                 <Heart className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-                <p className="text-xs font-medium text-purple-800">{t("fairytales")}</p>
+                <p className="text-xs font-medium text-purple-800">
+                  {t("fairytales")}
+                </p>
               </div>
               <div className="text-center p-3 rounded-lg bg-orange-50 hover:bg-orange-100 transition-all">
                 <Mic className="h-6 w-6 text-orange-600 mx-auto mb-2" />
-                <p className="text-xs font-medium text-orange-800">{state.language === "en" ? "Speech" : "Suara"}</p>
+                <p className="text-xs font-medium text-orange-800">
+                  {state.language === "en" ? "Speech" : "Suara"}
+                </p>
               </div>
             </div>
 
             {/* Features List */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                <Badge
+                  variant="outline"
+                  className="bg-blue-100 text-blue-800 border-blue-200"
+                >
                   {state.language === "en" ? "Bilingual" : "Dwibahasa"}
                 </Badge>
                 <p className="text-xs text-gray-600">
@@ -163,7 +174,10 @@ export default function Login() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                <Badge
+                  variant="outline"
+                  className="bg-green-100 text-green-800 border-green-200"
+                >
                   {state.language === "en" ? "Voice" : "Suara"}
                 </Badge>
                 <p className="text-xs text-gray-600">
@@ -173,7 +187,10 @@ export default function Login() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+                <Badge
+                  variant="outline"
+                  className="bg-purple-100 text-purple-800 border-purple-200"
+                >
                   {state.language === "en" ? "Progress" : "Kemajuan"}
                 </Badge>
                 <p className="text-xs text-gray-600">
@@ -184,30 +201,41 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Login Form */}
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="email">{state.language === "en" ? "Email" : "Email"}</Label>
+                <Label htmlFor="email">
+                  {state.language === "en" ? "Email" : "Email"}
+                </Label>
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder={state.language === "en" ? "Enter your email" : "Masukkan email Anda"}
+                  placeholder={
+                    state.language === "en"
+                      ? "Enter your email"
+                      : "Masukkan email Anda"
+                  }
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">{state.language === "en" ? "Password" : "Kata Sandi"}</Label>
+                <Label htmlFor="password">
+                  {state.language === "en" ? "Password" : "Kata Sandi"}
+                </Label>
                 <Input
                   id="password"
                   type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder={state.language === "en" ? "Enter your password" : "Masukkan kata sandi Anda"}
+                  placeholder={
+                    state.language === "en"
+                      ? "Enter your password"
+                      : "Masukkan kata sandi Anda"
+                  }
                   required
                 />
               </div>
@@ -217,17 +245,22 @@ export default function Login() {
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 disabled={isLoading}
               >
-                {isLoading 
-                  ? (state.language === "en" ? "Signing in..." : "Masuk...")
-                  : (state.language === "en" ? "Sign In" : "Masuk")
-                }
+                {isLoading
+                  ? state.language === "en"
+                    ? "Signing in..."
+                    : "Masuk..."
+                  : state.language === "en"
+                  ? "Sign In"
+                  : "Masuk"}
               </Button>
             </form>
 
             {/* Register Link */}
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                {state.language === "en" ? "Don't have an account?" : "Belum punya akun?"}{" "}
+                {state.language === "en"
+                  ? "Don't have an account?"
+                  : "Belum punya akun?"}{" "}
                 <Link
                   href="/register"
                   className="font-medium text-blue-600 hover:text-blue-500"
