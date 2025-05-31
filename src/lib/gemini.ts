@@ -60,7 +60,7 @@ class GeminiService {
   private getStoryPrompt(language: 'en' | 'id'): string {
     if (language === 'id') {
       return `
-Buatkan cerita pendek anak bertema petualangan dengan spesifikasi:
+Buatkan cerita pendek anak bertema petualangan yang variatif dengan spesifikasi:
 
 1. Panjang: 3-5 lembar
 
@@ -100,7 +100,7 @@ Pastikan cerita mengandung nilai moral positif dan sesuai untuk anak-anak.
 `
     } else {
       return `
-Create a children's adventure short story with specifications:
+Create a children's variation adventure short story with specifications:
 
 1. Length: 3-5 pages
 

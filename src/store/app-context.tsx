@@ -33,6 +33,15 @@ const initialState: AppState = {
   pwaInstallPrompt: null,
 }
 
+// Session cache to avoid redundant fetches
+let sessionCache: { 
+  userData: User | null, 
+  timestamp: number,
+  isValid: () => boolean 
+} | null = null
+
+const SESSION_CACHE_DURATION = 30000 // 30 seconds
+
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "SET_USER":
@@ -84,14 +93,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
     return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
-  }, [])
-  // Load user session on mount
+  }, [])  // Load user session on mount
   useEffect(() => {
+    let isMounted = true
+    
     const loadUserSession = async () => {
       try {
-        const response = await fetch("/api/auth/session")
+        // Check cache first
+        if (sessionCache && sessionCache.isValid()) {
+          if (isMounted) {
+            dispatch({ type: "SET_USER", payload: sessionCache.userData })
+            dispatch({ type: "SET_LOADING", payload: false })
+            
+            // Still check for saved child selection
+            if (sessionCache.userData) {
+              const savedChildId = ClientCookies.getCurrentChildId()
+              if (savedChildId && sessionCache.userData.children) {
+                const savedChild = sessionCache.userData.children.find((child: Child) => child.id === savedChildId)
+                if (savedChild) {
+                  dispatch({ type: "SET_CURRENT_CHILD", payload: savedChild })
+                }
+              }
+            }
+          }
+          return
+        }
+        
+        const response = await fetch("/api/auth/session", {
+          cache: 'no-cache',
+          credentials: 'include'
+        })
+        
+        if (!isMounted) return
+        
         if (response.ok) {
           const userData = await response.json()
+          
+          // Update cache
+          sessionCache = {
+            userData,
+            timestamp: Date.now(),
+            isValid: () => Date.now() - sessionCache!.timestamp < SESSION_CACHE_DURATION
+          }
+          
           dispatch({ type: "SET_USER", payload: userData })
           
           // After loading user, check for saved child selection in cookies
@@ -105,18 +149,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Handle non-200 responses (like 404)
           console.log("No active session found")
+          
+          // Update cache with null user
+          sessionCache = {
+            userData: null,
+            timestamp: Date.now(),
+            isValid: () => Date.now() - sessionCache!.timestamp < SESSION_CACHE_DURATION
+          }
+          
           dispatch({ type: "SET_USER", payload: null })
         }
       } catch (error) {
         console.error("Failed to load user session:", error)
         // Don't crash the app, just set user to null
-        dispatch({ type: "SET_USER", payload: null })
+        if (isMounted) {
+          dispatch({ type: "SET_USER", payload: null })
+        }
       } finally {
-        dispatch({ type: "SET_LOADING", payload: false })
+        if (isMounted) {
+          dispatch({ type: "SET_LOADING", payload: false })
+        }
       }
     }
 
     loadUserSession()
+    
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>
@@ -130,10 +190,13 @@ export function useApp() {
   const login = async (user: User) => {
     context.dispatch({ type: "SET_USER", payload: user })
   }
-  
-  const logout = async () => {
+    const logout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" })
+      
+      // Clear session cache
+      sessionCache = null
+      
       context.dispatch({ type: "SET_USER", payload: null })
       context.dispatch({ type: "SET_CURRENT_CHILD", payload: null })
       // Clear cookies to ensure fresh child selection on next login

@@ -2,51 +2,52 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, BookOpen, Play, Heart, Star, Sparkles, Plus } from "lucide-react"
+import { 
+  BookOpen, 
+  Plus, 
+  Heart, 
+  Clock, 
+  Users, 
+  Sparkles, 
+  ArrowLeft,
+  BookMarked,
+  Star
+} from "lucide-react"
 import { useApp } from "@/store/app-context"
 import { useTranslation } from "@/lib/i18n"
 import { useToast } from "@/hooks/use-toast"
 
-const SAMPLE_STORIES = [
-  {
-    id: "little-red-riding-hood",
-    title: { en: "Little Red Riding Hood", id: "Si Tudung Merah" },
-    description: {
-      en: "A classic tale about a girl and a wolf",
-      id: "Kisah klasik tentang seorang gadis dan serigala",
-    },
-    readingTime: 5,
-    ageGroup: [4, 5, 6, 7],
-    category: "fairy-tale",
-    illustration: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: "three-little-pigs",
-    title: { en: "Three Little Pigs", id: "Tiga Babi Kecil" },
-    description: {
-      en: "Three pigs build houses to protect from the wolf",
-      id: "Tiga babi membangun rumah untuk melindungi dari serigala",
-    },
-    readingTime: 6,
-    ageGroup: [3, 4, 5, 6],
-    category: "fairy-tale",
-    illustration: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: "goldilocks",
-    title: { en: "Goldilocks and the Three Bears", id: "Goldilocks dan Tiga Beruang" },
-    description: {
-      en: "A curious girl visits the bears' house",
-      id: "Seorang gadis penasaran mengunjungi rumah beruang",
-    },
-    readingTime: 7,
-    ageGroup: [4, 5, 6, 7, 8],
-    category: "fairy-tale",
-    illustration: "/placeholder.svg?height=200&width=300",
-  },
-]
+interface StoryPage {
+  pageNumber: number
+  title: string
+  content: string
+  illustration?: string
+}
+
+interface Story {
+  id: string
+  title: {
+    en: string
+    id: string
+  }
+  description: {
+    en: string
+    id: string
+  }
+  pages: {
+    en: StoryPage[]
+    id: StoryPage[]
+  }
+  readingTime: number
+  ageGroup: number[]
+  category: string
+  createdAt: Date
+  isGenerated?: boolean
+  isFavorite?: boolean
+  isRead?: boolean
+}
 
 export default function StoriesPage() {
   const { state } = useApp()
@@ -54,49 +55,91 @@ export default function StoriesPage() {
   const router = useRouter()
   const { toast } = useToast()
   
-  const [generatedStories, setGeneratedStories] = useState<any[]>([])
+  const [stories, setStories] = useState<Story[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
-  
   useEffect(() => {
-    // Load user's generated stories
-    const loadGeneratedStories = async () => {
+    const loadStories = async () => {
       try {
+        setIsLoading(true)
+        
         const response = await fetch('/api/stories/user')
+        
         if (response.ok) {
           const { stories } = await response.json()
-          setGeneratedStories(stories || [])
+          setStories(stories)
+        } else {
+          // Show sample stories for demo
+          const sampleStories: Story[] = [
+            {
+              id: "sample-1",
+              title: {
+                en: "The Magical Forest Adventure",
+                id: "Petualangan Hutan Ajaib"
+              },
+              description: {
+                en: "A young explorer discovers magical creatures in an enchanted forest",
+                id: "Seorang penjelajah muda menemukan makhluk ajaib di hutan yang terpesona"
+              },
+              pages: {
+                en: [{ pageNumber: 1, title: "Beginning", content: "Sample content..." }],
+                id: [{ pageNumber: 1, title: "Permulaan", content: "Contoh konten..." }]
+              },
+              readingTime: 8,
+              ageGroup: [3, 4, 5, 6, 7, 8],
+              category: "adventure",
+              createdAt: new Date(),
+              isGenerated: true,
+              isFavorite: false,
+              isRead: false
+            },
+            {
+              id: "sample-2",
+              title: {
+                en: "The Space Explorer",
+                id: "Penjelajah Luar Angkasa"
+              },
+              description: {
+                en: "A brave astronaut discovers new planets and makes alien friends",
+                id: "Seorang astronot pemberani menemukan planet baru dan berteman dengan alien"
+              },
+              pages: {
+                en: [{ pageNumber: 1, title: "Launch", content: "Sample content..." }],
+                id: [{ pageNumber: 1, title: "Peluncuran", content: "Contoh konten..." }]
+              },
+              readingTime: 6,
+              ageGroup: [4, 5, 6, 7, 8, 9],
+              category: "science",
+              createdAt: new Date(),
+              isGenerated: true,
+              isFavorite: true,
+              isRead: true
+            }
+          ]
+          setStories(sampleStories)
         }
+        
+        setIsLoading(false)
       } catch (error) {
-        console.error('Error loading generated stories:', error)
+        console.error('Error loading stories:', error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: state.language === "en" 
+            ? "Failed to load stories" 
+            : "Gagal memuat cerita",
+        })
+        setIsLoading(false)
       }
     }
-    
-    if (state.currentChild) {
-      loadGeneratedStories()
-    }
-  }, [state.currentChild])
-  
-  const readStories = state.currentChild?.progress.stories.readStories || []
-  const favoriteStories = state.currentChild?.progress.stories.favoriteStories || []
-  const handleStorySelect = (storyId: string) => {
-    // Check if it's a generated story
-    const isGenerated = generatedStories.some(story => story.id === storyId || story._id === storyId)
-    
-    if (isGenerated) {
-      router.push(`/stories/generated/${storyId}`)
-    } else {
-      router.push(`/stories/${storyId}`)
-    }
-  }
 
-  const toggleFavorite = (storyId: string) => {
-    // This would update the favorites in the database
-    console.log("Toggle favorite:", storyId)
-  }
+    loadStories()
+  }, [state.language]) // Removed toast from dependencies
 
-  const handleGenerateStory = async () => {
-    setIsGenerating(true)
+  const generateNewStory = async () => {
     try {
+      setIsGenerating(true)
+      
       const response = await fetch('/api/stories/generate', {
         method: 'POST',
         headers: {
@@ -107,24 +150,23 @@ export default function StoriesPage() {
         })
       })
 
-      if (!response.ok) {
+      if (response.ok) {
+        const { story } = await response.json()
+        setStories(prev => [story, ...prev])
+        
+        toast({
+          title: state.language === "en" ? "Story Generated!" : "Cerita Dibuat!",
+          description: state.language === "en" 
+            ? "Your new magical story is ready to read" 
+            : "Cerita ajaib baru Anda siap untuk dibaca",
+        })
+        
+        // Navigate to the new story
+        router.push(`/stories/generated/${story.id}`)
+      } else {
         throw new Error('Failed to generate story')
       }
-
-      const { story } = await response.json()
       
-      // Add the new story to our generated stories list
-      setGeneratedStories(prev => [story, ...prev])
-      
-      toast({
-        title: t("storyGenerated"),
-        description: state.language === "en" 
-          ? "Your new adventure story is ready!" 
-          : "Cerita petualangan baru Anda sudah siap!",
-      })
-
-      // Navigate to the new story
-      router.push(`/stories/generated/${story.id}`)
     } catch (error) {
       console.error('Error generating story:', error)
       toast({
@@ -139,8 +181,34 @@ export default function StoriesPage() {
     }
   }
 
-  // Combine sample stories with generated stories
-  const allStories = [...generatedStories, ...SAMPLE_STORIES]
+  const handleStoryClick = (story: Story) => {
+    router.push(`/stories/generated/${story.id}`)
+  }
+
+  const getCategoryColor = (category: string) => {
+    const colors = {
+      adventure: "bg-emerald-500",
+      science: "bg-blue-500", 
+      fantasy: "bg-purple-500",
+      friendship: "bg-pink-500",
+      family: "bg-orange-500",
+      nature: "bg-green-500",
+      default: "bg-gray-500"
+    }
+    return colors[category as keyof typeof colors] || colors.default
+  }
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'adventure': return '🏕️'
+      case 'science': return '🚀'
+      case 'fantasy': return '✨'
+      case 'friendship': return '👫'
+      case 'family': return '👨‍👩‍👧‍👦'
+      case 'nature': return '🌳'
+      default: return '📚'
+    }
+  }
 
   if (!state.currentChild) {
     router.push("/")
@@ -151,184 +219,177 @@ export default function StoriesPage() {
     <div className="min-h-screen bg-gradient-radial from-indigo-400 via-purple-500 to-pink-500 animate-gradient-slow">
       {/* Header */}
       <div className="bg-white/10 backdrop-blur-md border-b border-white/20 shadow-lg">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => router.push("/")} 
-              className="text-white hover:bg-white/20 transition-all duration-300 hover:scale-105"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              {t("back")}
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white text-glow-white">{t("fairytales")}</h1>
-              <p className="text-white/90 text-sm font-nunito">
-                {state.language === "en" ? "Listen to magical stories" : "Dengarkan cerita-cerita ajaib"}
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center gap-1 text-white">
-                <BookOpen className="h-5 w-5 text-yellow-300 animate-pulse-gentle" />
-                <span className="font-bold">{readStories.length}</span>
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => router.push("/")} 
+                className="text-white hover:bg-white/20 transition-all duration-300 hover:scale-105"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                {t("home")}
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-white text-glow-white font-nunito">
+                  {state.language === "en" ? "Story Library" : "Perpustakaan Cerita"}
+                </h1>
+                <p className="text-white/90 text-lg font-nunito">
+                  {state.language === "en" 
+                    ? `Welcome back, ${state.currentChild.name}!`
+                    : `Selamat datang kembali, ${state.currentChild.name}!`}
+                </p>
               </div>
-              <p className="text-xs text-white/80 font-nunito">{state.language === "en" ? "Read" : "Dibaca"}</p>
             </div>
+            <Button
+              onClick={generateNewStory}
+              disabled={isGenerating}
+              className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-bold px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                  {state.language === "en" ? "Creating..." : "Membuat..."}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {state.language === "en" ? "Generate New Story" : "Buat Cerita Baru"}
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto p-4 space-y-6">        {/* Stats Card */}
-        <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl overflow-hidden hover:shadow-blue-200/20 hover:shadow-2xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="p-3 rounded-lg hover:bg-indigo-50 transition-colors duration-300">
-                <div className="text-2xl font-bold text-indigo-600">{readStories.length}</div>
-                <p className="text-sm text-gray-600 font-nunito">{state.language === "en" ? "Stories Read" : "Cerita Dibaca"}</p>
-              </div>
-              <div className="p-3 rounded-lg hover:bg-pink-50 transition-colors duration-300">
-                <div className="text-2xl font-bold text-pink-600">{favoriteStories.length}</div>
-                <p className="text-sm text-gray-600 font-nunito">{state.language === "en" ? "Favorites" : "Favorit"}</p>
-              </div>
-              <div className="p-3 rounded-lg hover:bg-purple-50 transition-colors duration-300">
-                <div className="text-2xl font-bold text-purple-600">{allStories.length}</div>
-                <p className="text-sm text-gray-600 font-nunito">{state.language === "en" ? "Available" : "Tersedia"}</p>
-              </div>
+      <div className="max-w-6xl mx-auto p-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-4" />
+              <p className="text-white text-lg font-nunito">{t("loading")}</p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Generate New Story Button */}
-        <Card className="bg-gradient-to-r from-emerald-400 via-cyan-500 to-blue-500 border-0 shadow-xl rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
-          <CardContent className="p-6 text-center">
-            <div className="flex items-center justify-center gap-4">
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-white mb-2 font-nunito">
-                  {t("generateNewStory")}
-                </h3>
-                <p className="text-white/90 text-sm font-nunito">
-                  {state.language === "en" 
-                    ? "Create a magical adventure story with AI!" 
-                    : "Buat cerita petualangan ajaib dengan AI!"}
-                </p>
-              </div>
+          </div>
+        ) : stories.length === 0 ? (
+          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl p-8 text-center">
+            <div className="max-w-md mx-auto">
+              <BookMarked className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-800 mb-2 font-nunito">
+                {state.language === "en" ? "No Stories Yet" : "Belum Ada Cerita"}
+              </h3>
+              <p className="text-gray-600 mb-6 font-nunito">
+                {state.language === "en" 
+                  ? "Start your magical journey by generating your first AI-powered story!"
+                  : "Mulai perjalanan ajaib Anda dengan membuat cerita pertama yang dibuat AI!"}
+              </p>
               <Button
-                onClick={handleGenerateStory}
+                onClick={generateNewStory}
                 disabled={isGenerating}
-                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 hover:border-white/50 transition-all duration-300 hover:scale-105"
-                size="lg"
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                    {t("generatingStory")}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5 mr-2" />
-                    {state.language === "en" ? "Generate" : "Buat"}
-                  </>
-                )}
+                <Plus className="h-4 w-4 mr-2" />
+                {state.language === "en" ? "Create Your First Story" : "Buat Cerita Pertama"}
               </Button>
             </div>
-          </CardContent>
-        </Card>        {/* Stories Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {allStories.map((story) => {
-            const storyId = story._id || story.id
-            const isRead = readStories.includes(storyId)
-            const isFavorite = favoriteStories.includes(storyId)
-            const isGenerated = !SAMPLE_STORIES.find(s => s.id === storyId)
-
-            return (
-              <Card
-                key={storyId}
-                className="cursor-pointer hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-white/95 backdrop-blur-md border-0 rounded-xl overflow-hidden hover:shadow-purple-200/30"
-                onClick={() => handleStorySelect(storyId)}
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stories.map((story) => (
+              <Card 
+                key={story.id}
+                className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer group"
+                onClick={() => handleStoryClick(story)}
               >
                 <CardHeader className="p-0">
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={story.illustration || "/placeholder.svg"}
-                      alt={story.title[state.language] || story.title?.id || story.title?.en}
-                      className="w-full h-48 object-cover transition-transform duration-700 hover:scale-110"
-                    />
-                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-black/5 to-transparent opacity-60"></div>
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      {isGenerated && (
-                        <Badge className="bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
-                          {state.language === "en" ? "AI Generated" : "Dibuat AI"}
+                  <div className="relative h-48 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                    <div className="text-6xl">{getCategoryIcon(story.category)}</div>
+                    <div className="absolute top-3 right-3 flex gap-2">
+                      {story.isGenerated && (
+                        <Badge className="bg-emerald-500 text-white">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          AI
                         </Badge>
                       )}
-                      {isRead && (
-                        <Badge className="bg-green-500 text-white shadow-lg shadow-green-500/20">{state.language === "en" ? "Read" : "Dibaca"}</Badge>
+                      {story.isFavorite && (
+                        <div className="bg-red-500 rounded-full p-1">
+                          <Heart className="h-3 w-3 text-white fill-current" />
+                        </div>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleFavorite(storyId)
-                        }}
-                        className="h-8 w-8 p-0 bg-white/80 hover:bg-white shadow-lg hover:shadow-pink-200/30 transition-all duration-300"
-                      >
-                        <Heart className={`h-4 w-4 ${isFavorite ? "text-red-500 fill-current animate-bounce-gentle" : "text-gray-600"}`} />
-                      </Button>
+                    </div>
+                    <div className="absolute bottom-3 left-3">
+                      <Badge className={`${getCategoryColor(story.category)} text-white`}>
+                        {story.category}
+                      </Badge>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-5 space-y-3">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-800 mb-1 font-nunito">
-                      {story.title[state.language] || story.title?.id || story.title?.en}
-                    </h3>
-                    <p className="text-sm text-gray-600 font-nunito">
-                      {story.description[state.language] || story.description?.id || story.description?.en}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-gray-500 font-nunito">
+                
+                <CardContent className="p-6">
+                  <CardTitle className="text-lg font-bold text-gray-800 mb-2 font-nunito line-clamp-2 group-hover:text-purple-600 transition-colors">
+                    {story.title[state.language]}
+                  </CardTitle>
+                  
+                  <p className="text-gray-600 text-sm mb-4 font-nunito line-clamp-3">
+                    {story.description[state.language]}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
                     <span className="flex items-center">
-                      <BookOpen className="h-3 w-3 mr-1 text-indigo-400" />
-                      {story.readingTime} {state.language === "en" ? "min read" : "menit baca"}
+                      <Clock className="h-3 w-3 mr-1" />
+                      {story.readingTime} {state.language === "en" ? "min" : "menit"}
                     </span>
-                    <span className="bg-indigo-50 px-2 py-1 rounded-full">
-                      {state.language === "en" ? "Ages" : "Umur"} {story.ageGroup[0]}-
-                      {story.ageGroup[story.ageGroup.length - 1]}
+                    <span className="flex items-center">
+                      <Users className="h-3 w-3 mr-1" />
+                      {story.ageGroup[0]}-{story.ageGroup[story.ageGroup.length - 1]} {state.language === "en" ? "years" : "tahun"}
+                    </span>
+                    <span className="flex items-center">
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      {story.pages[state.language].length} {state.language === "en" ? "pages" : "halaman"}
                     </span>
                   </div>
-
-                  <Button 
-                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-all duration-300 text-white" 
-                    size="sm"
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    {state.language === "en" ? "Read Story" : "Baca Cerita"}
-                  </Button>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">
+                      {new Date(story.createdAt).toLocaleDateString(state.language === "en" ? "en-US" : "id-ID")}
+                    </span>
+                    {story.isRead && (
+                      <div className="flex items-center text-emerald-600">
+                        <Star className="h-3 w-3 mr-1 fill-current" />
+                        <span className="text-xs font-nunito">
+                          {state.language === "en" ? "Completed" : "Selesai"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* Coming Soon */}
-        <Card className="bg-gradient-to-r from-purple-100 to-pink-100 border-0 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:shadow-purple-200/30">
-          <div className="absolute inset-0 bg-gradient-conic from-indigo-200 via-purple-200 to-pink-200 opacity-20 animate-spin-slow"></div>
-          <CardContent className="relative p-8 text-center">
-            <Star className="h-12 w-12 text-purple-500 mx-auto mb-4 animate-pulse-slow" />
-            <h3 className="font-bold text-purple-800 mb-2 text-xl font-nunito">
-              {state.language === "en" ? "More Stories Coming Soon!" : "Lebih Banyak Cerita Segera Hadir!"}
-            </h3>
-            <p className="text-purple-600 text-sm font-nunito">
-              {state.language === "en"
-                ? "We're adding new magical stories every week. Stay tuned!"
-                : "Kami menambahkan cerita ajaib baru setiap minggu. Nantikan!"}
-            </p>
-            <div className="absolute -bottom-12 -right-12 w-40 h-40 bg-pink-200 rounded-full opacity-30 blur-xl"></div>
-            <div className="absolute -top-12 -left-12 w-40 h-40 bg-indigo-200 rounded-full opacity-30 blur-xl"></div>
-          </CardContent>
-        </Card>
+        {/* Generate New Story Card */}
+        {stories.length > 0 && (
+          <Card 
+            className="mt-6 bg-gradient-to-br from-yellow-100 to-orange-100 border-2 border-dashed border-yellow-300 shadow-xl rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer group"
+            onClick={generateNewStory}
+          >
+            <CardContent className="p-8 text-center">
+              <div className="max-w-sm mx-auto">
+                <Plus className="h-12 w-12 text-yellow-600 mx-auto mb-4 group-hover:scale-110 transition-transform" />
+                <h3 className="text-xl font-bold text-yellow-800 mb-2 font-nunito">
+                  {state.language === "en" ? "Create Another Story" : "Buat Cerita Lain"}
+                </h3>
+                <p className="text-yellow-700 font-nunito">
+                  {state.language === "en" 
+                    ? "Let AI create a new magical adventure just for you!"
+                    : "Biarkan AI membuat petualangan ajaib baru khusus untuk Anda!"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
