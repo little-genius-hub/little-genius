@@ -4,45 +4,51 @@ import UserModel from "@/db/models/UserModel";
 import { ObjectId } from "mongodb";
 
 // GET /api/user/children - Get all children for the authenticated user
-export const GET = withAuth(async (request: NextRequest, { user }) => {  try {
+export const GET = withAuth(async (request: NextRequest, { user }) => {
+  try {
     const userData = await UserModel.findById(user.userId);
-    
+
     if (!userData) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Ensure all children have proper progress structure
-    const childrenWithProgress = (userData.children || []).map((child: any) => ({
-      ...child,
-      progress: child.progress || {
-        numbers: {
-          level: 1,
-          subLevel: 1,
-          totalScore: 0,
-          completedLevels: []
+    const childrenWithProgress = (userData.children || []).map(
+      (child: any) => ({
+        ...child,
+        progress: child.progress || {
+          numbers: {
+            level: 1,
+            subLevel: 1,
+            totalScore: 0,
+            completedLevels: [],
+          },
+          letters: {
+            level: 1,
+            subLevel: 1,
+            totalScore: 0,
+            completedLevels: [],
+          },
+          stories: {
+            readStories: [],
+            favoriteStories: [],
+          },
         },
-        letters: {
-          level: 1,
-          subLevel: 1,
-          totalScore: 0,
-          completedLevels: []
-        },
-        stories: {
-          readStories: [],
-          favoriteStories: []
-        }
-      }
-    }));
+      })
+    );
 
     return Response.json({ children: childrenWithProgress });
   } catch (error) {
     console.error("Error fetching children:", error);
-    return Response.json({ error: "Failed to fetch children" }, { status: 500 });
+    return Response.json(
+      { error: "Failed to fetch children" },
+      { status: 500 }
+    );
   }
 });
 
 // POST /api/user/children - Add a new child for the authenticated user
-export const POST = withAuth(async (request: NextRequest, { user }) => {  try {
+export const POST = withAuth(async (request: NextRequest, { user }) => {
+  try {
     const childData = await request.json();
     const { name, age, grade, birthDate, preferredLanguage } = childData;
 
@@ -51,42 +57,22 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {  try {
         { error: "Name, age, and grade are required" },
         { status: 400 }
       );
-    }   
+    }
     const newChild = {
       id: new ObjectId().toString(),
       name,
       age: parseInt(age),
       grade,
-      birthDate: birthDate || null,
-      preferredLanguage: preferredLanguage || "en",
-      progress: {
-        numbers: {
-          level: 1,
-          subLevel: 1,
-          totalScore: 0,
-          completedLevels: []
-        },
-        letters: {
-          level: 1,
-          subLevel: 1,
-          totalScore: 0,
-          completedLevels: []
-        },
-        stories: {
-          readStories: [],
-          favoriteStories: []
-        }
-      },
       achievements: [],
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
-    // Get current user and update children array
-    const collection = await UserModel.collection();    const result = await collection.updateOne(
+    const collection = await UserModel.collection();
+    const result = await collection.updateOne(
       { _id: new ObjectId(user.userId) },
-      { 
+      {
         $push: { children: newChild } as any,
-        $set: { updatedAt: new Date() }
+        $set: { updatedAt: new Date() },
       }
     );
 
@@ -113,15 +99,14 @@ export const PUT = withAuth(async (request: NextRequest, { user }) => {
       );
     }
 
-    // Update user's children array in database
     const collection = await UserModel.collection();
     const result = await collection.updateOne(
       { _id: new ObjectId(user.userId) },
-      { 
-        $set: { 
+      {
+        $set: {
           children: children,
-          updatedAt: new Date() 
-        }
+          updatedAt: new Date(),
+        },
       }
     );
 
@@ -132,6 +117,9 @@ export const PUT = withAuth(async (request: NextRequest, { user }) => {
     return Response.json({ message: "Children updated successfully" });
   } catch (error) {
     console.error("Error updating children:", error);
-    return Response.json({ error: "Failed to update children" }, { status: 500 });
+    return Response.json(
+      { error: "Failed to update children" },
+      { status: 500 }
+    );
   }
 });
