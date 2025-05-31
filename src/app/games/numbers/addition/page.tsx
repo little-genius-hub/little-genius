@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,7 @@ interface GameState {
   isCorrect: boolean;
   gameComplete: boolean;
   subLevel: number;
+  finalTimeSpent?: number;
 }
 
 const INITIAL_LIVES = 3;
@@ -52,6 +53,10 @@ export default function AdditionGamePage() {
     subLevel: 1,
   });
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [progressData, setProgressData] = useState<any[]>([]);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSavedRef = useRef(false); // Tambahkan ref guard
 
   // Generate problems based on sub-level
   function generateProblems(subLevel: number): MathProblem[] {
@@ -101,52 +106,92 @@ export default function AdditionGamePage() {
     setStartTime(Date.now());
   }, [gameState.subLevel]);
 
+  // Function untuk fetch progress dari backend
+  async function fetchProgressData(childId: string) {
+    try {
+      const res = await fetch(`/api/progress/numbers?childId=${childId}`);
+      const data = await res.json();
+      console.log("🚀 ~ fetchProgressData ~ data:", data.progress);
+      setProgressData(data.progress || []);
+    } catch (err) {
+      console.error("Failed to fetch progress data", err);
+      setProgressData([]);
+    }
+  }
+
+  // Panggil saat komponen mount atau child berubah
+  useEffect(() => {
+    if (state.currentChild?.id) {
+      fetchProgressData(state.currentChild.id);
+    }
+  }, [state.currentChild?.id]);
+
   // Handle answer submission
   function handleAnswerSubmit() {
     const current = gameState.problems[gameState.currentProblem];
     const userAnswerNum = Number.parseInt(gameState.userAnswer);
     const isCorrect = userAnswerNum === current.answer;
+    const newScore = isCorrect ? gameState.score + 10 : gameState.score;
+    const newLives = isCorrect ? gameState.lives : gameState.lives - 1;
+    const isLastProblem =
+      gameState.currentProblem + 1 >= gameState.problems.length;
+    const isLastLife = newLives <= 0;
 
+    // Jika nyawa habis atau soal terakhir, langsung set gameComplete tanpa delay
+    if (
+      (isLastProblem || isLastLife) &&
+      !gameState.gameComplete &&
+      !hasSavedRef.current
+    ) {
+      hasSavedRef.current = true;
+      const timeSpent = startTime
+        ? Math.floor((Date.now() - startTime) / 1000)
+        : 0;
+      saveProgress(newScore, timeSpent);
+      setGameState((prev) => ({
+        ...prev,
+        showResult: true,
+        isCorrect,
+        score: newScore,
+        lives: newLives,
+        gameComplete: true,
+        finalTimeSpent: timeSpent,
+      }));
+      return;
+    }
+
+    // Jika belum game over, tetap pakai delay untuk feedback
     setGameState((prev) => ({
       ...prev,
       showResult: true,
       isCorrect,
-      score: isCorrect ? prev.score + 10 : prev.score,
-      lives: isCorrect ? prev.lives : prev.lives - 1,
+      score: newScore,
+      lives: newLives,
     }));
 
-    setTimeout(() => {
-      // Kembalikan ke logika prediksi lives habis
-      if (
-        gameState.currentProblem + 1 >= gameState.problems.length ||
-        (!isCorrect && gameState.lives - 1 <= 0) // lives habis setelah salah
-      ) {
-        setGameState((prev) => ({ ...prev, gameComplete: true }));
-        saveProgress();
-      } else {
-        setGameState((prev) => ({
-          ...prev,
-          currentProblem: prev.currentProblem + 1,
-          userAnswer: "",
-          showResult: false,
-        }));
-      }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setGameState((prev) => ({
+        ...prev,
+        currentProblem: prev.currentProblem + 1,
+        userAnswer: "",
+        showResult: false,
+      }));
     }, 1500);
   }
 
   // Save progress to global state dan ke backend
-  async function saveProgress() {
+  async function saveProgress(finalScore: number, timeSpent: number) {
     if (!state.currentChild) return;
-    const timeSpent = startTime
-      ? Math.floor((Date.now() - startTime) / 1000)
-      : 0;
     const completedLevel = {
+      childId: state.currentChild.id,
       level: gameState.subLevel,
       subLevel: gameState.subLevel,
-      score: gameState.score,
+      score: finalScore,
       timeSpent,
       completedAt: new Date(),
-      mistakes: PROBLEMS_PER_LEVEL - gameState.score / 10,
+      mistakes: PROBLEMS_PER_LEVEL - finalScore / 10,
+      gameType: "addition-number",
     };
 
     // Kirim ke backend (API Next.js)
@@ -182,6 +227,8 @@ export default function AdditionGamePage() {
 
   // Restart game with current subLevel
   function restartGame() {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    hasSavedRef.current = false;
     setGameState({
       currentProblem: 0,
       score: 0,
@@ -194,10 +241,13 @@ export default function AdditionGamePage() {
       subLevel: gameState.subLevel,
     });
     setStartTime(Date.now());
+    window.location.reload();
   }
 
   // Change subLevel and restart game
   function changeSubLevel(newSubLevel: number) {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    hasSavedRef.current = false;
     setGameState({
       currentProblem: 0,
       score: 0,
@@ -213,10 +263,11 @@ export default function AdditionGamePage() {
   }
 
   // Redirect if no child selected
-  if (!state.currentChild) {
-    router.push("/");
-    return null;
-  }
+  useEffect(() => {
+    if (!state.isLoading && !state.currentChild) {
+      window.location.href = "/";
+    }
+  }, [state.currentChild]);
 
   const currentProblem = gameState.problems[gameState.currentProblem];
   const progress = ((gameState.currentProblem + 1) / PROBLEMS_PER_LEVEL) * 100;
@@ -224,9 +275,9 @@ export default function AdditionGamePage() {
   // Game complete popup
   if (gameState.gameComplete) {
     const level = gameState.subLevel;
-    const timeSpent = startTime
-      ? Math.floor((Date.now() - startTime) / 1000)
-      : 0;
+    const timeSpent =
+      gameState.finalTimeSpent ??
+      (startTime ? Math.floor((Date.now() - startTime) / 1000) : 0);
 
     return (
       <div className="min-h-screen bg-gradient-radial from-teal-400 via-blue-500 to-indigo-600 animate-gradient-slow flex items-center justify-center p-4">
@@ -305,6 +356,15 @@ export default function AdditionGamePage() {
     );
   }
 
+  // Function to get the highest score for a specific level
+  function getHighestScoreForLevel(level: number): number {
+    if (!progressData || progressData.length === 0) return 0;
+    const levelScores = progressData
+      .filter((item: any) => item.level === level)
+      .map((item: any) => item.score);
+    return levelScores.length > 0 ? Math.max(...levelScores) : 0;
+  }
+
   // Main game UI
   return (
     <div className="min-h-screen bg-gradient-radial from-teal-400 via-blue-500 to-indigo-600 animate-gradient-slow">
@@ -379,26 +439,34 @@ export default function AdditionGamePage() {
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl overflow-hidden">
           <CardContent className="p-5">
             <div className="flex gap-3 justify-center">
-              {[1, 2, 3].map((level) => (
-                <Button
-                  key={level}
-                  variant={gameState.subLevel === level ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => changeSubLevel(level)}
-                  className={`min-w-[90px] py-5 transition-all duration-300 ${
-                    gameState.subLevel === level
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 shadow-md shadow-blue-500/30"
-                      : "border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50"
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="text-lg font-medium">{level}</div>
-                    <div className="text-xs opacity-80">
-                      {state.language === "en" ? "Level" : "Level"}
+              {[1, 2, 3].map((level) => {
+                let disabled = false;
+                if (level === 2) disabled = getHighestScoreForLevel(1) < 80;
+                if (level === 3) disabled = getHighestScoreForLevel(2) < 80;
+                return (
+                  <Button
+                    key={level}
+                    disabled={disabled}
+                    variant={
+                      gameState.subLevel === level ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => changeSubLevel(level)}
+                    className={`min-w-[90px] py-5 transition-all duration-300 ${
+                      gameState.subLevel === level
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 shadow-md shadow-blue-500/30"
+                        : "border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50"
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg font-medium">{level}</div>
+                      <div className="text-xs opacity-80">
+                        {state.language === "en" ? "Level" : "Level"}
+                      </div>
                     </div>
-                  </div>
-                </Button>
-              ))}
+                  </Button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
