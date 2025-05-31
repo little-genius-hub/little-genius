@@ -10,9 +10,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing data" }, { status: 400 });
     }
 
-    const result = await collectionProgress().insertOne(completedLevel);
+    const progres = await collectionProgress();
+    progres.insertOne(completedLevel);
 
-    console.log("🚀 ~ POST ~ result:", result);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(

@@ -116,7 +116,7 @@ export default function AdditionGamePage() {
     }));
 
     setTimeout(() => {
-      // TAMBAHKAN LOGIKA INI:
+      // Kembalikan ke logika prediksi lives habis
       if (
         gameState.currentProblem + 1 >= gameState.problems.length ||
         (!isCorrect && gameState.lives - 1 <= 0) // lives habis setelah salah

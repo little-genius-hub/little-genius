@@ -4,6 +4,7 @@ import errHandler from "@/helpers/errHandler";
 
 export async function POST(request: Request) {
   try {
+    console.log("🚀 ~ POST ~ request:");
     const user: LoginUser = await request.json();
     const access_token = await UserModel.login(user);
 

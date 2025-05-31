@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 interface ApiError {
@@ -16,8 +22,8 @@ interface ApiError {
 
 export default function Login() {
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+    email: "admin@mail.com",
+    password: "rahasia",
   });
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -34,15 +40,18 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
       if (!res.ok) throw await res.json();
 
@@ -53,16 +62,21 @@ export default function Login() {
 
       // Redirect to home page
       router.push("/");
-      router.refresh();    } catch (err) {
+      router.refresh();
+    } catch (err) {
       const error = err as ApiError;
       let errorMessage = "Login failed";
-      
-      if (typeof error?.message === 'string') {
+
+      if (typeof error?.message === "string") {
         errorMessage = error.message;
-      } else if (error?.message && typeof error.message === 'object' && 'message' in error.message) {
+      } else if (
+        error?.message &&
+        typeof error.message === "object" &&
+        "message" in error.message
+      ) {
         errorMessage = error.message.message;
       }
-      
+
       toast({
         variant: "destructive",
         title: "Error!",
@@ -110,11 +124,7 @@ export default function Login() {
               />
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
