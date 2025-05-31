@@ -31,12 +31,15 @@ export const translations = {
     wordScramble: "Word Scramble",
     speechRecognition: "Say the Word",
     unscrambleWord: "Unscramble the word",
-    speakWord: "Say this word clearly",
-
-    // Stories
+    speakWord: "Say this word clearly",    // Stories
     fairytales: "Fairytales",
     readStory: "Read Story",
     listenStory: "Listen to Story",
+    generateNewStory: "Generate New Story",
+    generatingStory: "Generating Story...",
+    storyGenerated: "Story Generated!",
+    previousPage: "Previous Page",
+    nextPage: "Next Page",
 
     // Auth
     signIn: "Sign In",
@@ -84,12 +87,15 @@ export const translations = {
     wordScramble: "Acak Kata",
     speechRecognition: "Ucapkan Kata",
     unscrambleWord: "Susun kata yang benar",
-    speakWord: "Ucapkan kata ini dengan jelas",
-
-    // Stories
+    speakWord: "Ucapkan kata ini dengan jelas",    // Stories
     fairytales: "Dongeng",
     readStory: "Baca Cerita",
     listenStory: "Dengarkan Cerita",
+    generateNewStory: "Buat Cerita Baru",
+    generatingStory: "Membuat Cerita...",
+    storyGenerated: "Cerita Berhasil Dibuat!",
+    previousPage: "Halaman Sebelumnya",
+    nextPage: "Halaman Selanjutnya",
 
     // Auth
     signIn: "Masuk",

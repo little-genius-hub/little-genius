@@ -47,7 +47,6 @@ export function MainMenu() {
     dispatch({ type: "SET_PARENT_MODE", payload: true });
     router.push("/parent");
   };
-
   const currentProgress = state.currentChild?.progress || {
     numbers: { level: 1, subLevel: 1, totalScore: 0, completedLevels: [] },
     letters: { level: 1, subLevel: 1, totalScore: 0, completedLevels: [] },
@@ -95,8 +94,7 @@ export function MainMenu() {
       bgColor: "bg-purple-50",
       textColor: "text-purple-700",
       route: "/stories",
-      progress: (state.currentChild?.progress.stories || { readStories: [] })
-        .readStories.length,
+      progress: (currentProgress.stories || { readStories: [] }).readStories.length,
     },
   ];
 
