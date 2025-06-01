@@ -15,12 +15,12 @@ export async function connectToDatabase() {
 
   const client = new MongoClient(uri);
   await client.connect();
-  
+
   const db = client.db("little-genius");
-  
+
   cachedClient = client;
   cachedDb = db;
-  
+
   return { client, db };
 }
 
@@ -28,5 +28,5 @@ export const db = {
   async getDb() {
     const { db } = await connectToDatabase();
     return db;
-  }
+  },
 };

@@ -1,4 +1,4 @@
-import type { Language } from "@/types"
+import type { Language } from "@/types";
 
 export const translations = {
   en: {
@@ -8,7 +8,7 @@ export const translations = {
     stories: "Stories",
     parent: "Parent Dashboard",
     logout: "Logout",
-    
+
     // Greetings
     hello: "Hello",
 
@@ -31,7 +31,7 @@ export const translations = {
     wordScramble: "Word Scramble",
     speechRecognition: "Say the Word",
     unscrambleWord: "Unscramble the word",
-    speakWord: "Say this word clearly",    // Stories
+    speakWord: "Say this word clearly", // Stories
     fairytales: "Fairytales",
     readStory: "Read Story",
     listenStory: "Listen to Story",
@@ -64,7 +64,7 @@ export const translations = {
     stories: "Cerita",
     parent: "Dashboard Orang Tua",
     logout: "Keluar",
-    
+
     // Greetings
     hello: "Halo",
 
@@ -87,7 +87,7 @@ export const translations = {
     wordScramble: "Acak Kata",
     speechRecognition: "Ucapkan Kata",
     unscrambleWord: "Susun kata yang benar",
-    speakWord: "Ucapkan kata ini dengan jelas",    // Stories
+    speakWord: "Ucapkan kata ini dengan jelas",
     fairytales: "Dongeng",
     readStory: "Baca Cerita",
     listenStory: "Dengarkan Cerita",
@@ -113,12 +113,12 @@ export const translations = {
     loading: "Memuat...",
     installApp: "Pasang Aplikasi",
   },
-}
+};
 
 export function useTranslation(language: Language) {
   return {
     t: (key: keyof typeof translations.en): string => {
-      return translations[language][key] || translations.en[key] || key
+      return translations[language][key] || translations.en[key] || key;
     },
-  }
+  };
 }

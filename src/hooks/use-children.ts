@@ -16,12 +16,13 @@ interface Child {
 export function useChildren() {
   const [children, setChildren] = useState<Child[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();  const loadChildren = async () => {
+  const { toast } = useToast();
+  const loadChildren = async () => {
     setIsLoading(true);
     try {
       const response = await ApiClient.getChildren();
 
-      if (!response.ok) throw new Error('Failed to load children');
+      if (!response.ok) throw new Error("Failed to load children");
 
       const data = await response.json();
       setChildren(data.children || []);
@@ -34,16 +35,17 @@ export function useChildren() {
     } finally {
       setIsLoading(false);
     }
-  };  const addChild = async (child: Omit<Child, 'id'>) => {
+  };
+  const addChild = async (child: Omit<Child, "id">) => {
     setIsLoading(true);
     try {
       const response = await ApiClient.addChild(child);
 
-      if (!response.ok) throw new Error('Failed to add child');
+      if (!response.ok) throw new Error("Failed to add child");
 
       const newChild = await response.json();
-      setChildren(prev => [...prev, newChild]);
-      
+      setChildren((prev) => [...prev, newChild]);
+
       toast({
         title: "Success!",
         description: "Child profile added successfully",
@@ -51,22 +53,25 @@ export function useChildren() {
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error", 
+        title: "Error",
         description: "Failed to add child profile",
       });
     } finally {
       setIsLoading(false);
     }
-  };  const updateChild = async (id: string, updatedChild: Omit<Child, 'id'>) => {
+  };
+  const updateChild = async (id: string, updatedChild: Omit<Child, "id">) => {
     setIsLoading(true);
     try {
       const response = await ApiClient.updateChild(id, updatedChild);
 
-      if (!response.ok) throw new Error('Failed to update child');
+      if (!response.ok) throw new Error("Failed to update child");
 
       const updated = await response.json();
-      setChildren(prev => prev.map(child => child.id === id ? updated : child));
-      
+      setChildren((prev) =>
+        prev.map((child) => (child.id === id ? updated : child))
+      );
+
       toast({
         title: "Success!",
         description: "Child profile updated successfully",
@@ -80,15 +85,16 @@ export function useChildren() {
     } finally {
       setIsLoading(false);
     }
-  };  const deleteChild = async (id: string) => {
+  };
+  const deleteChild = async (id: string) => {
     setIsLoading(true);
     try {
       const response = await ApiClient.deleteChild(id);
 
-      if (!response.ok) throw new Error('Failed to delete child');
+      if (!response.ok) throw new Error("Failed to delete child");
 
-      setChildren(prev => prev.filter(child => child.id !== id));
-      
+      setChildren((prev) => prev.filter((child) => child.id !== id));
+
       toast({
         title: "Success!",
         description: "Child profile deleted successfully",
@@ -102,15 +108,16 @@ export function useChildren() {
     } finally {
       setIsLoading(false);
     }
-  };  const updateChildren = async (newChildren: Child[]) => {
+  };
+  const updateChildren = async (newChildren: Child[]) => {
     setIsLoading(true);
     try {
       const response = await ApiClient.updateChildren(newChildren);
 
-      if (!response.ok) throw new Error('Failed to update children');
+      if (!response.ok) throw new Error("Failed to update children");
 
       setChildren(newChildren);
-      
+
       toast({
         title: "Success!",
         description: "Children profiles updated successfully",
@@ -126,7 +133,6 @@ export function useChildren() {
     }
   };
   useEffect(() => {
-    // Only load children if user is authenticated
     const token = ClientCookies.getAuthToken();
     if (token) {
       loadChildren();
