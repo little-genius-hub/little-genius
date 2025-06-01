@@ -56,7 +56,6 @@ export default function SubtractionGamePage() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasSavedRef = useRef(false);
 
-  // Generate subtraction problems
   function generateProblems(subLevel: number): MathProblem[] {
     const problems: MathProblem[] = [];
     for (let i = 0; i < PROBLEMS_PER_LEVEL; i++) {
@@ -78,7 +77,7 @@ export default function SubtractionGamePage() {
           operand1 = Math.floor(Math.random() * 10) + 1;
           operand2 = Math.floor(Math.random() * 10) + 1;
       }
-      // Pastikan operand1 >= operand2 agar hasil tidak negatif
+
       if (operand2 > operand1) [operand1, operand2] = [operand2, operand1];
       problems.push({
         id: `subtraction_${i}`,
