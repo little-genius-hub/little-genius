@@ -1,95 +1,67 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Plus, User, ArrowRight } from "lucide-react"
-import { useApp } from "@/store/app-context"
-import { useTranslation } from "@/lib/i18n"
-import { ClientCookies } from "@/helpers/cookies"
-import type { Child } from "@/types"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Plus, User, ArrowRight } from "lucide-react";
+import { useApp } from "@/store/app-context";
+import { useTranslation } from "@/lib/i18n";
+import { ClientCookies } from "@/helpers/cookies";
+import type { Child } from "@/types";
 
-export function ChildSelector() {  const { state, dispatch, setCurrentChild } = useApp()
-  const { t } = useTranslation(state.language)
-  const [showAddChild, setShowAddChild] = useState(false)
-  const [newChildName, setNewChildName] = useState("")
-  const [newChildAge, setNewChildAge] = useState("")
-  const [newChildGrade, setNewChildGrade] = useState("")
-  const [isCreating, setIsCreating] = useState(false)
-  
-    const demoChildProfiles: Child[] = [
-    {
-      id: "demo1",
-      name: "Maya",
-      age: 5,
-      preferredLanguage: "en",
-      progress: {
-        numbers: { level: 2, subLevel: 3, totalScore: 250, completedLevels: [] },
-        letters: { level: 1, subLevel: 5, totalScore: 150, completedLevels: [] },
-        stories: { readStories: ["story1", "story2"], favoriteStories: ["story1"] }
-      },
-      achievements: [],
-      createdAt: new Date(),
-    },
-    {
-      id: "demo2",
-      name: "Budi",
-      age: 7, 
-      preferredLanguage: "id",      progress: {
-        numbers: { level: 3, subLevel: 1, totalScore: 320, completedLevels: [] },
-        letters: { level: 2, subLevel: 4, totalScore: 280, completedLevels: [] },
-        stories: { readStories: ["story1", "story3", "story4"], favoriteStories: ["story3"] }
-      },
-      achievements: [],
-      createdAt: new Date(),
-    }
-  ]
-  
+export function ChildSelector() {
+  const { state, dispatch, setCurrentChild } = useApp();
+  const { t } = useTranslation(state.language);
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [newChildName, setNewChildName] = useState("");
+  const [newChildAge, setNewChildAge] = useState("");
+  const [newChildGrade, setNewChildGrade] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
   const handleSelectChild = (child: Child) => {
-    setCurrentChild(child)
-  }
-  const handleCreateChild = async () => {
-    if (!newChildName.trim() || !newChildAge || !newChildGrade.trim()) return
+    setCurrentChild(child);
+  };
 
-    setIsCreating(true)
+  const handleCreateChild = async () => {
+    if (!newChildName.trim() || !newChildAge || !newChildGrade.trim()) return;
+
+    setIsCreating(true);
     try {
       const response = await fetch("/api/user/children", {
-        method: "POST",        headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newChildName.trim(),
           age: Number.parseInt(newChildAge),
           grade: newChildGrade.trim(),
-          preferredLanguage: state.language,        }),
-      })
+          preferredLanguage: state.language,
+        }),
+      });
 
       if (response.ok) {
-        const newChild = await response.json()
+        const newChild = await response.json();
         const updatedUser = {
           ...state.user!,
           children: [...(state.user!.children || []), newChild],
-        }
-        dispatch({ type: "SET_USER", payload: updatedUser })
-        setCurrentChild(newChild)
-        // Reset form
-        setNewChildName("")
-        setNewChildAge("")
-        setNewChildGrade("")
-        setShowAddChild(false)
+        };
+        dispatch({ type: "SET_USER", payload: updatedUser });
+        setCurrentChild(newChild);
+        setNewChildName("");
+        setNewChildAge("");
+        setNewChildGrade("");
+        setShowAddChild(false);
       } else {
-        console.error("Failed to create child profile")
+        console.error("Failed to create child profile");
       }
     } catch (error) {
-      console.error("Create child failed:", error)
+      console.error("Create child failed:", error);
     } finally {
-      setIsCreating(false)
+      setIsCreating(false);
     }
-  }
-    const handleSelectDemoChild = (child: Child) => {
-    setCurrentChild(child)
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">
@@ -111,18 +83,25 @@ export function ChildSelector() {  const { state, dispatch, setCurrentChild } = 
             {showAddChild ? (
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <Label htmlFor="name">{state.language === "en" ? "Child's Name" : "Nama Anak"}</Label>
+                  <Label htmlFor="name">
+                    {state.language === "en" ? "Child's Name" : "Nama Anak"}
+                  </Label>
                   <Input
                     id="name"
                     value={newChildName}
                     onChange={(e) => setNewChildName(e.target.value)}
                     placeholder={
-                      state.language === "en" ? "Enter name..." : "Masukkan nama..."
+                      state.language === "en"
+                        ? "Enter name..."
+                        : "Masukkan nama..."
                     }
                     className="bg-white/70"
                   />
-                </div>                <div className="space-y-1">
-                  <Label htmlFor="age">{state.language === "en" ? "Child's Age" : "Usia Anak"}</Label>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="age">
+                    {state.language === "en" ? "Child's Age" : "Usia Anak"}
+                  </Label>
                   <Input
                     id="age"
                     type="number"
@@ -130,44 +109,67 @@ export function ChildSelector() {  const { state, dispatch, setCurrentChild } = 
                     max="12"
                     value={newChildAge}
                     onChange={(e) => setNewChildAge(e.target.value)}
-                    placeholder={state.language === "en" ? "2-10 years" : "2-10 tahun"}
+                    placeholder={
+                      state.language === "en" ? "2-10 years" : "2-10 tahun"
+                    }
                     className="bg-white/70"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="grade">{state.language === "en" ? "Grade" : "Kelas"}</Label>
+                  <Label htmlFor="grade">
+                    {state.language === "en" ? "Grade" : "Kelas"}
+                  </Label>
                   <Input
                     id="grade"
                     value={newChildGrade}
                     onChange={(e) => setNewChildGrade(e.target.value)}
-                    placeholder={state.language === "en" ? "e.g., Kindergarten, Grade 1" : "mis., TK, Kelas 1"}
+                    placeholder={
+                      state.language === "en"
+                        ? "e.g., Kindergarten, Grade 1"
+                        : "mis., TK, Kelas 1"
+                    }
                     className="bg-white/70"
                   />
                 </div>
 
-                <div className="flex gap-2 pt-4">                  <Button
+                <div className="flex gap-2 pt-4">
+                  <Button
                     variant="outline"
                     onClick={() => {
-                      setShowAddChild(false)
-                      setNewChildName("")
-                      setNewChildAge("")
-                      setNewChildGrade("")
+                      setShowAddChild(false);
+                      setNewChildName("");
+                      setNewChildAge("");
+                      setNewChildGrade("");
                     }}
                     className="flex-1"
                   >
                     {state.language === "en" ? "Cancel" : "Batal"}
-                  </Button>                  <Button
+                  </Button>
+                  <Button
                     onClick={handleCreateChild}
-                    disabled={isCreating || !newChildName.trim() || !newChildAge || !newChildGrade.trim()}
+                    disabled={
+                      isCreating ||
+                      !newChildName.trim() ||
+                      !newChildAge ||
+                      !newChildGrade.trim()
+                    }
                     className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   >
                     {isCreating ? (
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>{state.language === "en" ? "Creating..." : "Membuat..."}</span>
+                        <span>
+                          {state.language === "en"
+                            ? "Creating..."
+                            : "Membuat..."}
+                        </span>
                       </div>
                     ) : (
-                      <span>{state.language === "en" ? "Create Profile" : "Buat Profil"}</span>
+                      <span>
+                        {state.language === "en"
+                          ? "Create Profile"
+                          : "Buat Profil"}
+                      </span>
                     )}
                   </Button>
                 </div>
@@ -192,10 +194,16 @@ export function ChildSelector() {  const { state, dispatch, setCurrentChild } = 
                           )}
                         </Avatar>
                         <div className="text-left">
-                          <p className="font-medium text-gray-900">{child.name}</p>
+                          <p className="font-medium text-gray-900">
+                            {child.name}
+                          </p>
                           <p className="text-xs text-gray-500">
-                            {state.language === "en" ? `Age ${child.age}` : `Usia ${child.age}`}
-                            {child.preferredLanguage === "en" ? " • English" : " • Bahasa"}
+                            {state.language === "en"
+                              ? `Age ${child.age}`
+                              : `Usia ${child.age}`}
+                            {child.preferredLanguage === "en"
+                              ? " • English"
+                              : " • Bahasa"}
                           </p>
                         </div>
                       </div>
@@ -221,59 +229,15 @@ export function ChildSelector() {  const { state, dispatch, setCurrentChild } = 
                   className="w-full flex gap-2 items-center justify-center border-dashed border-gray-300"
                 >
                   <Plus className="h-4 w-4" />
-                  {state.language === "en" ? "Add New Child" : "Tambah Anak Baru"}
+                  {state.language === "en"
+                    ? "Add New Child"
+                    : "Tambah Anak Baru"}
                 </Button>
-
-                {demoChildProfiles.length > 0 && (
-                  <>
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-200"></div>
-                      </div>
-                      <div className="relative flex justify-center text-xs">
-                        <span className="bg-white px-2 text-gray-500">
-                          {state.language === "en" ? "Demo Profiles" : "Profil Demo"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3">
-                      {demoChildProfiles.map((profile) => (
-                        <button
-                          key={profile.id}
-                          onClick={() => handleSelectDemoChild(profile)}
-                          className="w-full bg-gradient-to-r from-white/60 to-white/80 hover:from-white/80 hover:to-white p-3 rounded-lg flex items-center justify-between group transition-all"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="border-2 border-purple-500">
-                              {profile.avatar ? (
-                                <AvatarImage src={profile.avatar} alt={profile.name} />
-                              ) : (
-                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-                                  {profile.name[0]}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div className="text-left">
-                              <p className="font-medium text-gray-900">{profile.name}</p>
-                              <p className="text-xs text-gray-500">
-                                {state.language === "en" ? `Age ${profile.age}` : `Usia ${profile.age}`}
-                                {" • "}
-                                <span className="text-purple-500">{state.language === "en" ? "Demo" : "Demo"}</span>
-                              </p>
-                            </div>
-                          </div>
-                          <ArrowRight className="h-4 w-4 text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

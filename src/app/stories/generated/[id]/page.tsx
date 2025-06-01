@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,6 @@ export default function GeneratedStoryPage() {
       try {
         setIsLoading(true);
 
-        // Check local storage cache first
         const cachedStoryStr = localStorage.getItem(`story-${storyId}`);
         const cachedTimestamp = localStorage.getItem(
           `story-${storyId}-timestamp`
@@ -87,13 +87,10 @@ export default function GeneratedStoryPage() {
           }
         }
 
-        // If no cache or cache expired, try to fetch from API
         const response = await fetch(`/api/stories/${storyId}`);
 
         if (response.ok) {
           const { story } = await response.json();
-
-          // Cache the story in localStorage
           localStorage.setItem(`story-${storyId}`, JSON.stringify(story));
           localStorage.setItem(
             `story-${storyId}-timestamp`,
@@ -102,7 +99,6 @@ export default function GeneratedStoryPage() {
 
           setStory(story);
         } else {
-          // Fallback to sample story for demo
           const sampleStory: GeneratedStory = {
             id: storyId,
             title: {
@@ -172,7 +168,6 @@ export default function GeneratedStoryPage() {
             category: "adventure",
             createdAt: new Date(),
           };
-          // Cache the sample story too
           localStorage.setItem(`story-${storyId}`, JSON.stringify(sampleStory));
           localStorage.setItem(
             `story-${storyId}-timestamp`,
@@ -200,9 +195,8 @@ export default function GeneratedStoryPage() {
     if (storyId) {
       loadStory();
     }
-  }, [storyId, state.language]); // Removed toast from dependencies to avoid unnecessary refetching
+  }, [storyId, state.language]);
 
-  // Update isFavorite state when the story loads
   useEffect(() => {
     if (story && typeof story.isFavorite !== "undefined") {
       setIsFavorite(story.isFavorite);
@@ -214,28 +208,23 @@ export default function GeneratedStoryPage() {
       setCurrentPage(currentPage - 1);
     }
   };
-  // Add a function to mark a story as read
+
   const markStoryAsRead = () => {
-    // Only proceed if we have a story and it's not already marked as read
     if (story && !story.isRead) {
-      // Update local story object
       const updatedStory = {
         ...story,
         isRead: true,
       };
       setStory(updatedStory);
 
-      // Update in localStorage
       if (storyId) {
         localStorage.setItem(`story-${storyId}`, JSON.stringify(updatedStory));
-        // Also update timestamp to prevent cache expiration
         localStorage.setItem(
           `story-${storyId}-timestamp`,
           new Date().getTime().toString()
         );
       }
 
-      // Optionally update on server
       try {
         fetch(`/api/stories/${storyId}/read`, {
           method: "POST",
@@ -256,7 +245,6 @@ export default function GeneratedStoryPage() {
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
 
-      // If this is the last page, mark the story as read
       if (nextPage === story.pages[state.language].length - 1) {
         markStoryAsRead();
       }
@@ -266,16 +254,13 @@ export default function GeneratedStoryPage() {
     const newFavoriteStatus = !isFavorite;
     setIsFavorite(newFavoriteStatus);
 
-    // Also update the story in localStorage and our state
     if (story && storyId) {
-      // Update local story object
       const updatedStory = {
         ...story,
         isFavorite: newFavoriteStatus,
       };
       setStory(updatedStory);
 
-      // Update in localStorage
       try {
         localStorage.setItem(`story-${storyId}`, JSON.stringify(updatedStory));
       } catch (e) {

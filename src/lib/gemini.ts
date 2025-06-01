@@ -1,64 +1,64 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = process.env.GEMINI_API_KEY || ''
+const API_KEY = process.env.GEMINI_API_KEY || "";
 
 if (!API_KEY) {
-  console.warn('GEMINI_API_KEY is not set. Story generation will not work.')
+  console.warn("GEMINI_API_KEY is not set. Story generation will not work.");
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY)
+const genAI = new GoogleGenerativeAI(API_KEY);
 
 export interface StoryPage {
-  pageNumber: number
-  title: string
-  content: string
-  illustration?: string
+  pageNumber: number;
+  title: string;
+  content: string;
+  illustration?: string;
 }
 
 export interface GeneratedStory {
-  id: string
+  id: string;
   title: {
-    en: string
-    id: string
-  }
+    en: string;
+    id: string;
+  };
   description: {
-    en: string
-    id: string
-  }
+    en: string;
+    id: string;
+  };
   pages: {
-    en: StoryPage[]
-    id: StoryPage[]
-  }
-  readingTime: number
-  ageGroup: number[]
-  category: string
-  createdAt: Date
+    en: StoryPage[];
+    id: StoryPage[];
+  };
+  readingTime: number;
+  ageGroup: number[];
+  category: string;
+  createdAt: Date;
 }
 
 class GeminiService {
-  private model
+  private model;
 
   constructor() {
-    this.model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    this.model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   }
 
-  async generateStory(language: 'en' | 'id' = 'id'): Promise<GeneratedStory> {
-    const prompt = this.getStoryPrompt(language)
-    
+  async generateStory(language: "en" | "id" = "id"): Promise<GeneratedStory> {
+    const prompt = this.getStoryPrompt(language);
+
     try {
-      const result = await this.model.generateContent(prompt)
-      const response = await result.response
-      const text = response.text()
-      
-      return this.parseStoryResponse(text, language)
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      return this.parseStoryResponse(text, language);
     } catch (error) {
-      console.error('Error generating story:', error)
-      throw new Error('Failed to generate story')
+      console.error("Error generating story:", error);
+      throw new Error("Failed to generate story");
     }
   }
 
-  private getStoryPrompt(language: 'en' | 'id'): string {
-    if (language === 'id') {
+  private getStoryPrompt(language: "en" | "id"): string {
+    if (language === "id") {
       return `
 Buatkan cerita pendek anak bertema petualangan yang variatif dengan spesifikasi:
 
@@ -97,7 +97,7 @@ Buatkan cerita pendek anak bertema petualangan yang variatif dengan spesifikasi:
 }
 
 Pastikan cerita mengandung nilai moral positif dan sesuai untuk anak-anak.
-`
+`;
     } else {
       return `
 Create a children's variation adventure short story with specifications:
@@ -137,47 +137,55 @@ Create a children's variation adventure short story with specifications:
 }
 
 Ensure the story contains positive moral values suitable for children.
-`
+`;
     }
   }
 
-  private parseStoryResponse(text: string, language: 'en' | 'id'): GeneratedStory {
+  private parseStoryResponse(
+    text: string,
+    language: "en" | "id"
+  ): GeneratedStory {
     try {
       // Extract JSON from the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in response')
+        throw new Error("No JSON found in response");
       }
 
-      const storyData = JSON.parse(jsonMatch[0])
-      
+      const storyData = JSON.parse(jsonMatch[0]);
+
       // Generate unique ID
-      const id = `story-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      
+      const id = `story-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
       // Create story object with both languages
       const story: GeneratedStory = {
         id,
-        title: language === 'id' 
-          ? { id: storyData.title, en: storyData.title }
-          : { en: storyData.title, id: storyData.title },
-        description: language === 'id'
-          ? { id: storyData.description, en: storyData.description }
-          : { en: storyData.description, id: storyData.description },
-        pages: language === 'id'
-          ? { id: storyData.pages, en: storyData.pages }
-          : { en: storyData.pages, id: storyData.pages },
+        title:
+          language === "id"
+            ? { id: storyData.title, en: storyData.title }
+            : { en: storyData.title, id: storyData.title },
+        description:
+          language === "id"
+            ? { id: storyData.description, en: storyData.description }
+            : { en: storyData.description, id: storyData.description },
+        pages:
+          language === "id"
+            ? { id: storyData.pages, en: storyData.pages }
+            : { en: storyData.pages, id: storyData.pages },
         readingTime: storyData.readingTime || 8,
         ageGroup: storyData.ageGroup || [3, 4, 5, 6, 7, 8],
-        category: storyData.category || 'adventure',
-        createdAt: new Date()
-      }
+        category: storyData.category || "adventure",
+        createdAt: new Date(),
+      };
 
-      return story
+      return story;
     } catch (error) {
-      console.error('Error parsing story response:', error)
-      throw new Error('Failed to parse generated story')
+      console.error("Error parsing story response:", error);
+      throw new Error("Failed to parse generated story");
     }
   }
 }
 
-export const geminiService = new GeminiService()
+export const geminiService = new GeminiService();
