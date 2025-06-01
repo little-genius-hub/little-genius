@@ -35,12 +35,11 @@ interface GameState {
 const INITIAL_LIVES = 3;
 const PROBLEMS_PER_LEVEL = 10;
 
-export default function AdditionGamePage() {
+export default function SubtractionGamePage() {
   const { state, dispatch } = useApp();
   const { t } = useTranslation(state.language);
   const router = useRouter();
 
-  // State
   const [gameState, setGameState] = useState<GameState>({
     currentProblem: 0,
     score: 0,
@@ -53,12 +52,11 @@ export default function AdditionGamePage() {
     subLevel: 1,
   });
   const [startTime, setStartTime] = useState<number | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [progressData, setProgressData] = useState<any[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasSavedRef = useRef(false); // Tambahkan ref guard
+  const hasSavedRef = useRef(false);
 
-  // Generate problems based on sub-level
+  // Generate subtraction problems
   function generateProblems(subLevel: number): MathProblem[] {
     const problems: MathProblem[] = [];
     for (let i = 0; i < PROBLEMS_PER_LEVEL; i++) {
@@ -80,12 +78,14 @@ export default function AdditionGamePage() {
           operand1 = Math.floor(Math.random() * 10) + 1;
           operand2 = Math.floor(Math.random() * 10) + 1;
       }
+      // Pastikan operand1 >= operand2 agar hasil tidak negatif
+      if (operand2 > operand1) [operand1, operand2] = [operand2, operand1];
       problems.push({
-        id: `addition_${i}`,
-        operation: "addition",
+        id: `subtraction_${i}`,
+        operation: "subtraction",
         operand1,
         operand2,
-        answer: operand1 + operand2,
+        answer: operand1 - operand2,
         level: subLevel,
         subLevel,
       });
@@ -93,7 +93,6 @@ export default function AdditionGamePage() {
     return problems;
   }
 
-  // Initialize problems when subLevel changes
   useEffect(() => {
     setGameState((prev) => ({
       ...prev,
@@ -101,32 +100,26 @@ export default function AdditionGamePage() {
     }));
   }, [gameState.subLevel]);
 
-  // Reset start time when subLevel changes
   useEffect(() => {
     setStartTime(Date.now());
   }, [gameState.subLevel]);
 
-  // Function untuk fetch progress dari backend
   async function fetchProgressData(childId: string) {
     try {
-      const res = await fetch(`/api/progress/numbers?childId=${childId}`);
+      const res = await fetch(`/api/progress/subtraction?childId=${childId}`);
       const data = await res.json();
-      console.log("🚀 ~ fetchProgressData ~ data:", data.progress);
       setProgressData(data.progress || []);
     } catch (err) {
-      console.error("Failed to fetch progress data", err);
       setProgressData([]);
     }
   }
 
-  // Panggil saat komponen mount atau child berubah
   useEffect(() => {
     if (state.currentChild?.id) {
       fetchProgressData(state.currentChild.id);
     }
   }, [state.currentChild?.id]);
 
-  // Handle answer submission
   function handleAnswerSubmit() {
     const current = gameState.problems[gameState.currentProblem];
     const userAnswerNum = Number.parseInt(gameState.userAnswer);
@@ -137,7 +130,6 @@ export default function AdditionGamePage() {
       gameState.currentProblem + 1 >= gameState.problems.length;
     const isLastLife = newLives <= 0;
 
-    // Jika nyawa habis atau soal terakhir, langsung set gameComplete tanpa delay
     if (
       (isLastProblem || isLastLife) &&
       !gameState.gameComplete &&
@@ -160,7 +152,6 @@ export default function AdditionGamePage() {
       return;
     }
 
-    // Jika belum game over, tetap pakai delay untuk feedback
     setGameState((prev) => ({
       ...prev,
       showResult: true,
@@ -180,7 +171,6 @@ export default function AdditionGamePage() {
     }, 1500);
   }
 
-  // Save progress to global state dan ke backend
   async function saveProgress(finalScore: number, timeSpent: number) {
     if (!state.currentChild) return;
     const completedLevel = {
@@ -190,22 +180,17 @@ export default function AdditionGamePage() {
       timeSpent,
       completedAt: new Date(),
       mistakes: PROBLEMS_PER_LEVEL - finalScore / 10,
-      gameType: "addition-number",
+      gameType: "subtraction-number",
     };
 
-    // Kirim ke backend (API Next.js)
     try {
       await fetch("/api/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(completedLevel),
       });
-    } catch (err) {
-      // Optional: tampilkan error jika gagal simpan ke backend
-      console.error("Failed to save progress to backend", err);
-    }
+    } catch (err) {}
 
-    // Update state lokal
     const updatedProgress = {
       numbers: {
         ...state.currentChild.progress.numbers,
@@ -224,7 +209,6 @@ export default function AdditionGamePage() {
     });
   }
 
-  // Restart game with current subLevel
   function restartGame() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     hasSavedRef.current = false;
@@ -243,7 +227,6 @@ export default function AdditionGamePage() {
     window.location.reload();
   }
 
-  // Change subLevel and restart game
   function changeSubLevel(newSubLevel: number) {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     hasSavedRef.current = false;
@@ -261,7 +244,6 @@ export default function AdditionGamePage() {
     setStartTime(Date.now());
   }
 
-  // Redirect if no child selected
   useEffect(() => {
     if (!state.isLoading && !state.currentChild) {
       window.location.href = "/";
@@ -271,7 +253,6 @@ export default function AdditionGamePage() {
   const currentProblem = gameState.problems[gameState.currentProblem];
   const progress = ((gameState.currentProblem + 1) / PROBLEMS_PER_LEVEL) * 100;
 
-  // Game complete popup
   if (gameState.gameComplete) {
     const level = gameState.subLevel;
     const timeSpent =
@@ -279,27 +260,27 @@ export default function AdditionGamePage() {
       (startTime ? Math.floor((Date.now() - startTime) / 1000) : 0);
 
     return (
-      <div className="min-h-screen bg-gradient-radial from-teal-400 via-blue-500 to-indigo-600 animate-gradient-slow flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-radial from-pink-400 via-red-400 to-yellow-400 animate-gradient-slow flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-white/95 backdrop-blur-md border-0 shadow-2xl rounded-2xl overflow-hidden">
           <div className="relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-yellow-200 rounded-full opacity-30 blur-2xl"></div>
-            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-200 rounded-full opacity-30 blur-2xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-pink-200 rounded-full opacity-30 blur-2xl"></div>
             <CardContent className="p-8 text-center space-y-8 relative z-10">
-              <div className="w-24 h-24 bg-gradient-to-tr from-yellow-400 to-amber-500 shadow-lg shadow-yellow-400/30 rounded-full flex items-center justify-center mx-auto animate-float">
+              <div className="w-24 h-24 bg-gradient-to-tr from-pink-400 to-yellow-400 shadow-lg shadow-pink-400/30 rounded-full flex items-center justify-center mx-auto animate-float">
                 <Trophy className="h-12 w-12 text-white" />
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-indigo-800 mb-2 font-nunito">
+                <h2 className="text-3xl font-bold text-pink-800 mb-2 font-nunito">
                   {state.language === "en" ? "Congratulations!" : "Selamat!"}
                 </h2>
                 <p className="text-gray-600 font-nunito">
                   {state.language === "en"
-                    ? "You completed the addition game!"
-                    : "Anda telah menyelesaikan permainan penjumlahan!"}
+                    ? "You completed the subtraction game!"
+                    : "Anda telah menyelesaikan permainan pengurangan!"}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-yellow-50 to-amber-50 p-4 rounded-xl shadow-inner">
+                <div className="bg-gradient-to-br from-yellow-50 to-pink-50 p-4 rounded-xl shadow-inner">
                   <div className="text-3xl font-bold text-yellow-500 flex items-center justify-center gap-2">
                     <Star className="h-5 w-5 text-yellow-500 animate-pulse-gentle" />
                     {gameState.score}
@@ -310,7 +291,7 @@ export default function AdditionGamePage() {
                       : "Bintang Diperoleh"}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-teal-50 p-4 rounded-xl shadow-inner">
+                <div className="bg-gradient-to-br from-green-50 to-yellow-50 p-4 rounded-xl shadow-inner">
                   <div className="text-3xl font-bold text-green-500">
                     {Math.round((gameState.score / 100) * 100)}%
                   </div>
@@ -322,11 +303,11 @@ export default function AdditionGamePage() {
               <div className="flex flex-col items-center space-y-1">
                 <span className="text-sm text-gray-700">
                   Level:{" "}
-                  <span className="font-bold text-indigo-700">{level}</span>
+                  <span className="font-bold text-pink-700">{level}</span>
                 </span>
                 <span className="text-sm text-gray-700">
                   Time Spent:{" "}
-                  <span className="font-bold text-indigo-700">
+                  <span className="font-bold text-pink-700">
                     {timeSpent} seconds
                   </span>
                 </span>
@@ -334,14 +315,14 @@ export default function AdditionGamePage() {
               <div className="space-y-3 pt-2">
                 <Button
                   onClick={restartGame}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="w-full bg-gradient-to-r from-pink-500 to-yellow-500 hover:from-pink-600 hover:to-yellow-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
                 >
                   {state.language === "en" ? "Play Again" : "Main Lagi"}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => router.push("/games/numbers")}
-                  className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-colors duration-300"
+                  className="w-full border-pink-200 text-pink-700 hover:bg-pink-50 transition-colors duration-300"
                 >
                   {state.language === "en"
                     ? "Back to Numbers"
@@ -355,7 +336,6 @@ export default function AdditionGamePage() {
     );
   }
 
-  // Function to get the highest score for a specific level
   function getHighestScoreForLevel(level: number): number {
     if (!progressData || progressData.length === 0) return 0;
     const levelScores = progressData
@@ -364,9 +344,8 @@ export default function AdditionGamePage() {
     return levelScores.length > 0 ? Math.max(...levelScores) : 0;
   }
 
-  // Main game UI
   return (
-    <div className="min-h-screen bg-gradient-radial from-teal-400 via-blue-500 to-indigo-600 animate-gradient-slow">
+    <div className="min-h-screen bg-gradient-radial from-pink-400 via-red-400 to-yellow-400 animate-gradient-slow">
       {/* Header */}
       <div className="bg-white/10 backdrop-blur-md border-b border-white/20 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -375,24 +354,24 @@ export default function AdditionGamePage() {
               variant="ghost"
               size="sm"
               onClick={() => router.push("/games/numbers")}
-              className="text-white hover:bg-white/20 transition-all duration-300 hover:scale-105"
+              className="text-pink-700 hover:bg-white/20 transition-all duration-300 hover:scale-105"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               {t("back")}
             </Button>
             <div className="text-center">
-              <h1 className="text-xl font-bold text-white text-glow-white font-nunito">
-                {t("addition")}
+              <h1 className="text-xl font-bold text-pink-700 text-glow-white font-nunito">
+                {state.language === "en" ? "Subtraction" : "Pengurangan"}
               </h1>
               <Badge
                 variant="secondary"
-                className="bg-gradient-to-r from-blue-400/80 to-indigo-400/80 text-white border-0 shadow-md"
+                className="bg-gradient-to-r from-pink-400/80 to-yellow-400/80 text-white border-0 shadow-md"
               >
                 {state.language === "en" ? "Sub-Level" : "Sub-Level"}{" "}
                 {gameState.subLevel}
               </Badge>
             </div>
-            <div className="flex items-center gap-5 text-white">
+            <div className="flex items-center gap-5 text-pink-700">
               <div className="flex items-center gap-1 bg-white/10 py-1 px-3 rounded-full">
                 <Star className="h-5 w-5 text-yellow-300 animate-pulse-gentle" />
                 <span className="font-bold">{gameState.score}</span>
@@ -420,16 +399,16 @@ export default function AdditionGamePage() {
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl overflow-hidden">
           <CardContent className="p-4">
             <div className="flex justify-between text-sm mb-2 font-nunito">
-              <span className="text-indigo-700 font-medium">
+              <span className="text-pink-700 font-medium">
                 {state.language === "en" ? "Progress" : "Kemajuan"}
               </span>
-              <span className="bg-indigo-50 px-2 py-0.5 rounded-full text-indigo-700 font-medium">
+              <span className="bg-pink-50 px-2 py-0.5 rounded-full text-pink-700 font-medium">
                 {gameState.currentProblem + 1}/{PROBLEMS_PER_LEVEL}
               </span>
             </div>
             <Progress
               value={progress}
-              className="h-3 bg-blue-100 bg-gradient-to-r from-blue-500 to-indigo-600"
+              className="h-3 bg-pink-100 bg-gradient-to-r from-pink-500 to-yellow-400"
             />
           </CardContent>
         </Card>
@@ -453,8 +432,8 @@ export default function AdditionGamePage() {
                     onClick={() => changeSubLevel(level)}
                     className={`min-w-[90px] py-5 transition-all duration-300 ${
                       gameState.subLevel === level
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 shadow-md shadow-blue-500/30"
-                        : "border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50"
+                        ? "bg-gradient-to-r from-pink-500 to-yellow-400 shadow-md shadow-pink-500/30"
+                        : "border-pink-200 text-pink-700 hover:border-pink-300 hover:bg-pink-50"
                     }`}
                   >
                     <div className="text-center">
@@ -473,10 +452,10 @@ export default function AdditionGamePage() {
         {/* Problem Card */}
         {currentProblem && (
           <Card className="bg-white/95 backdrop-blur-md border-0 shadow-2xl rounded-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 py-3">
+            <div className="bg-gradient-to-r from-pink-500 to-yellow-400 py-3">
               <CardHeader className="text-center pb-2">
-                <CardTitle className="text-4xl font-bold text-white font-nunito text-glow-white">
-                  {currentProblem.operand1} + {currentProblem.operand2} = ?
+                <CardTitle className="text-4xl font-bold text-pink-700 font-nunito text-glow-white">
+                  {currentProblem.operand1} - {currentProblem.operand2} = ?
                 </CardTitle>
               </CardHeader>
             </div>
@@ -498,7 +477,7 @@ export default function AdditionGamePage() {
                           ? "Enter your answer"
                           : "Masukkan jawaban"
                       }
-                      className="text-center text-3xl font-bold h-16 text-indigo-800 border-2 border-indigo-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-xl shadow-inner bg-indigo-50/50"
+                      className="text-center text-3xl font-bold h-16 text-pink-700 border-2 border-pink-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 rounded-xl shadow-inner bg-pink-50/50"
                       onKeyPress={(e) =>
                         e.key === "Enter" &&
                         gameState.userAnswer &&
@@ -509,7 +488,7 @@ export default function AdditionGamePage() {
                   <Button
                     onClick={handleAnswerSubmit}
                     disabled={!gameState.userAnswer}
-                    className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl"
+                    className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl"
                   >
                     {state.language === "en"
                       ? "Submit Answer"
@@ -521,8 +500,8 @@ export default function AdditionGamePage() {
                   <div
                     className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-lg animate-bounce-once ${
                       gameState.isCorrect
-                        ? "bg-gradient-to-br from-green-100 to-green-200 shadow-green-200/50"
-                        : "bg-gradient-to-br from-red-100 to-red-200 shadow-red-200/50"
+                        ? "bg-gradient-to-br from-green-100 to-yellow-100 shadow-green-200/50"
+                        : "bg-gradient-to-br from-red-100 to-pink-100 shadow-red-200/50"
                     }`}
                   >
                     {gameState.isCorrect ? (
@@ -544,7 +523,7 @@ export default function AdditionGamePage() {
                         {state.language === "en"
                           ? "The correct answer is"
                           : "Jawaban yang benar adalah"}{" "}
-                        <span className="font-bold text-indigo-600">
+                        <span className="font-bold text-pink-700">
                           {currentProblem.answer}
                         </span>
                       </p>
