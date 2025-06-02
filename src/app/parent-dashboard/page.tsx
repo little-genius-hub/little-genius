@@ -54,6 +54,20 @@ interface ProgressData {
   timeSpent: number
 }
 
+interface SkillAnalysis {
+  subject: string
+  status: "Need Improvement" | "Improving" | "Great"
+  recommendedGames: string[]
+}
+
+interface DashboardData {
+  progress: ProgressData[]
+  analysis: {
+    analysis: SkillAnalysis[]
+    overallSummary: string
+  }
+}
+
 const recentActivities = [
   {
     id: 1,
@@ -141,9 +155,10 @@ export default function ParentDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [children, setChildren] = useState<Child[]>([])
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
 
   useEffect(() => {
-    const fetchChildren = async () => {
+    const fetchData = async () => {
       try {
         const response = await ApiClient.getChildren()
         if (!response.ok) {
@@ -153,6 +168,8 @@ export default function ParentDashboard() {
         setChildren(data.children)
         if (data.children.length > 0) {
           setSelectedChild(data.children[0])
+          // Fetch dashboard data for the first child
+          await fetchDashboardData(data.children[0].id)
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred")
@@ -161,8 +178,31 @@ export default function ParentDashboard() {
       }
     }
 
-    fetchChildren()
+    fetchData()
   }, [])
+
+  // Add function to fetch dashboard data
+  const fetchDashboardData = async (childId: string) => {
+    try {
+      const response = await fetch(`/api/parent-dashboard?childId=${childId}&language=en`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard data")
+      }
+      const data = await response.json()
+      setDashboardData(data)
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err)
+    }
+  }
+
+  // Update child selector to fetch new dashboard data when child changes
+  const handleChildChange = async (value: string) => {
+    const child = children.find((c) => c.id === value)
+    if (child) {
+      setSelectedChild(child)
+      await fetchDashboardData(child.id)
+    }
+  }
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>
@@ -252,10 +292,7 @@ export default function ParentDashboard() {
             <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
             <Select
               value={selectedChild.id}
-              onValueChange={(value) => {
-                const child = children.find((c) => c.id === value)
-                if (child) setSelectedChild(child)
-              }}
+              onValueChange={handleChildChange}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select child" />
@@ -338,29 +375,62 @@ export default function ParentDashboard() {
           <TabsContent value="progress" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Skill Progress */}
-              <Card>
+              <Card className="bg-white shadow-lg rounded-xl">
                 <CardHeader>
-                  <CardTitle>Skill Development</CardTitle>
-                  <CardDescription>{selectedChild.name}'s progress across different learning areas</CardDescription>
+                  <CardTitle className="text-xl font-bold text-gray-900">Skill Development</CardTitle>
+                  <CardDescription className="text-gray-500">
+                    {selectedChild.name}'s learning progress analysis
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {calculateSkillProgress(selectedChild.progress).map((skill, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{skill.skill}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {Math.round(skill.timeSpent)}m spent
-                          </span>
-                          <Badge variant="secondary">{skill.level}</Badge>
-                        </div>
+                <CardContent>
+                  {dashboardData?.analysis.analysis.map((skill, index) => (
+                    <div key={index} className="mb-6 last:mb-0">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-semibold text-gray-800">{skill.subject}</h3>
+                        <Badge
+                          variant={
+                            skill.status === "Great"
+                              ? "default"
+                              : skill.status === "Improving"
+                              ? "secondary"
+                              : "destructive"
+                          }
+                          className="px-3 py-1"
+                        >
+                          {skill.status}
+                        </Badge>
                       </div>
-                      <Progress value={skill.progress} className="h-2" />
-                      <div className="text-xs text-muted-foreground text-right">
-                        {Math.round(skill.progress)}% Complete
+                      
+                      <div className="space-y-3">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Recommended Games</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {skill.recommendedGames.map((game, idx) => (
+                              <Badge key={idx} variant="outline" className="bg-white">
+                                {game}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <Progress 
+                          value={
+                            skill.status === "Great" 
+                              ? 100 
+                              : skill.status === "Improving" 
+                              ? 60 
+                              : 30
+                          } 
+                          className="h-2"
+                        />
                       </div>
                     </div>
                   ))}
+
+                  <div className="mt-6 p-4 bg-purple-50 rounded-lg">
+                    <h4 className="text-sm font-medium text-purple-900 mb-2">Overall Progress</h4>
+                    <p className="text-sm text-purple-700">{dashboardData?.analysis.overallSummary}</p>
+                  </div>
                 </CardContent>
               </Card>
 
