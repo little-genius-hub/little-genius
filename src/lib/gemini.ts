@@ -58,29 +58,58 @@ class GeminiService {
   }
 
   private getStoryPrompt(language: "en" | "id"): string {
+    // Create an array of random themes to add variety
+    const themes = [
+      "jungle adventure",
+      "space exploration",
+      "underwater discovery",
+      "magical forest",
+      "desert journey",
+      "mountain climbing",
+      "time travel",
+      "ancient ruins",
+      "futuristic city",
+      "animal friends",
+    ];
+
+    // Randomly pick a theme
+    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
+    // Generate a random seed to enhance variety
+    const seed = Math.floor(Math.random() * 10000);
+
     if (language === "id") {
       return `
 Buatkan cerita pendek anak bertema petualangan yang variatif dengan spesifikasi:
 
-1. Panjang: 3-5 lembar
+1. Gunakan tema: "${randomTheme}" sebagai inspirasi, tapi jangan terpaku pada tema ini saja.
 
-2. Struktur per lembar:
+2. Panjang: 3-5 lembar
+
+3. Struktur per lembar:
    - Lembar 1: Pengenalan tokoh & latar
    - Lembar 2-4: Konflik + aksi seru
    - Lembar terakhir: Penyelesaian & pesan moral
 
-3. Setiap lembar HARUS berisi 3 paragraf panjang (masing-masing 4-6 kalimat)
+4. Setiap lembar HARUS berisi 3 paragraf panjang (masing-masing 4-6 kalimat)
 
-4. Elemen wajib: 
+5. Elemen wajib: 
    - Dialog antartokoh 
    - Deskripsi sensorik (suara, warna, tekstur)
    - Twist mengejutkan di lembar 3
 
-5. Bahasa: Indonesia sederhana, gunakan onomatope (contoh: "Braak!" "Whoosh!") 
+6. Bahasa: Indonesia sederhana, gunakan onomatope (contoh: "Braak!" "Whoosh!") 
 
-6. Target usia: 2-10 tahun
+7. Target usia: 2-10 tahun
 
-7. Format output harus JSON dengan struktur:
+8. SANGAT PENTING untuk variasi:
+   - Buat judul yang UNIK dan KREATIF
+   - JANGAN gunakan "Lily", "Pip", atau nama karakter yang umum
+   - Gunakan kombinasi karakter yang tidak biasa (seperti hewan yang jarang, objek yang menjadi hidup, dll)
+   - Cerita harus original dan tidak mengikuti pola cerita anak yang sudah umum
+   - Seed number untuk variasi: ${seed}
+
+9. Format output harus JSON dengan struktur:
 {
   "title": "Judul Cerita",
   "description": "Deskripsi singkat cerita",
@@ -100,27 +129,36 @@ Pastikan cerita mengandung nilai moral positif dan sesuai untuk anak-anak.
 `;
     } else {
       return `
-Create a children's variation adventure short story with specifications:
+Create a children's adventure short story with specifications:
 
-1. Length: 3-5 pages
+1. Use theme: "${randomTheme}" as inspiration, but don't be limited to just this theme.
 
-2. Structure per page:
+2. Length: 3-5 pages
+
+3. Structure per page:
    - Page 1: Character introduction & setting
    - Pages 2-4: Conflict + exciting action
    - Last page: Resolution & moral message
 
-3. Each page MUST contain 3 long paragraphs (4-6 sentences each)
+4. Each page MUST contain 3 long paragraphs (4-6 sentences each)
 
-4. Required elements:
+5. Required elements:
    - Character dialogue
    - Sensory descriptions (sounds, colors, textures)
    - Surprising twist on page 3
 
-5. Language: Simple English, use onomatopoeia (example: "Bang!" "Whoosh!")
+6. Language: Simple English, use onomatopoeia (example: "Bang!" "Whoosh!")
 
-6. Target age: 2-10 years
+7. Target age: 2-10 years
 
-7. Output format must be JSON with structure:
+8. VERY IMPORTANT for variation:
+   - Create a UNIQUE and CREATIVE title
+   - DO NOT use "Lily", "Pip", or common character names
+   - Use unusual character combinations (like uncommon animals, objects that come to life, etc.)
+   - Story must be original and not follow common children's story patterns
+   - Seed number for variation: ${seed}
+
+9. Output format must be JSON with structure:
 {
   "title": "Story Title",
   "description": "Brief story description",
