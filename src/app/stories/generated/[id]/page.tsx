@@ -15,10 +15,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ImageIcon,
+  Volume2,
+  Pause,
+  Play,
 } from "lucide-react";
 import { useApp } from "@/store/app-context";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
+import { speechService } from "@/lib/speech";
 
 interface StoryPage {
   pageNumber: number;
@@ -61,6 +65,9 @@ export default function GeneratedStoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [isNarrating, setIsNarrating] = useState(false);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(true);
+  const [activeSegment, setActiveSegment] = useState<number | null>(null);
 
   const storyId = params.id as string;
   // Function to generate an appropriate image prompt based on story content
@@ -294,6 +301,86 @@ export default function GeneratedStoryPage() {
     }
   }, [imageLoading, currentPage, story]);
 
+  // Check speech support on mount
+  useEffect(() => {
+    const checkSpeechSupport = () => {
+      const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+      setIsSpeechSupported(supported);
+    };
+    checkSpeechSupport();
+
+    // Cleanup any active narration when unmounting
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        speechService.stop();
+      }
+    };
+  }, []);
+
+  // Stop narration when changing pages
+  useEffect(() => {
+    if (isNarrating) {
+      speechService.stop();
+      setIsNarrating(false);
+      setActiveSegment(null);
+    }
+  }, [currentPage]);  // Function to handle the narration of the story
+  const narrateStory = async () => {
+    if (!story || !isSpeechSupported) return;
+
+    if (isNarrating) {
+      // If already narrating, stop
+      speechService.stop();
+      setIsNarrating(false);
+      setActiveSegment(null);
+      return;
+    }
+
+    setIsNarrating(true);
+
+    try {
+      // First narrate title
+      await narrateWithAnimation(currentStoryPage.title, true);
+      
+      // Highlight the entire content while narrating
+      setActiveSegment(0);
+      
+      // Now narrate the entire page content at once instead of sentence by sentence
+      await narrateWithAnimation(currentStoryPage.content, false);
+      
+      setIsNarrating(false);
+      setActiveSegment(null);
+    } catch (error) {
+      console.error("Narration error:", error);
+      setIsNarrating(false);
+      setActiveSegment(null);
+    }
+  };
+  // Function to narrate text with animation
+  const narrateWithAnimation = (text: string, isTitle: boolean): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Use child-friendly speech options
+        speechService.speak(text, state.language, { isChildFriendly: true })
+          .then(() => {
+            // Add a small delay between sentences for better comprehension
+            if (!isTitle) {
+              setTimeout(() => {
+                resolve();
+              }, 300); // 300ms pause between sentences
+            } else {
+              resolve();
+            }
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
   const handlePreviousPage = () => {
     if (currentPage > 0) {
       setImageLoading(true);
@@ -369,6 +456,46 @@ export default function GeneratedStoryPage() {
         : state.language === "en"
         ? "Added to favorites"
         : "Ditambahkan ke favorit",
+    });
+  };
+  // Highlight special story elements for interactive reading
+  const highlightSpecialWords = (text: string) => {
+    // Common magical/special words to highlight
+    const specialWords = [
+      'magical', 'magic', 'sparkle', 'fairy', 'dragon', 'shadow', 'wizard',
+      'spell', 'potion', 'enchanted', 'ajaib', 'peri', 'sihir', 'naga',
+      'bayangan', 'pesona', 'terpesona', 'ramuan'
+    ];
+    
+    // Split the text by spaces but keep punctuation with words
+    return text.split(/(\s+)/).map((word, idx) => {
+      // Clean word for comparison (remove punctuation)
+      const cleanWord = word.toLowerCase().replace(/[^\w\s]/g, '');
+      
+      if (specialWords.some(special => cleanWord === special)) {
+        return (
+          <span 
+            key={idx} 
+            className="text-purple-600 font-semibold animate-pulse px-0.5"
+          >
+            {word}
+          </span>
+        );
+      }
+      
+      // Check for character dialogue (text in quotes)
+      if (word.includes('"') || word.includes("'") || word.includes("!")) {
+        return (
+          <span 
+            key={idx} 
+            className="text-blue-600 italic"
+          >
+            {word}
+          </span>
+        );
+      }
+      
+      return word;
     });
   };
 
@@ -530,9 +657,52 @@ export default function GeneratedStoryPage() {
 
             {/* Story Text */}
             <div className="prose prose-lg max-w-none">
-              <p className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
-                {currentStoryPage.content}
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-purple-700 font-nunito mb-0">
+                  {currentStoryPage.title}
+                </h3>                {isSpeechSupported && (
+                  <Button
+                    onClick={narrateStory}
+                    variant={isNarrating ? "outline" : "default"}
+                    size="md"
+                    className={`${
+                      isNarrating 
+                        ? 'bg-purple-100 border-purple-300 animate-pulse' 
+                        : 'bg-purple-500 hover:bg-purple-600 text-white shadow-md hover:shadow-lg'
+                    } transition-all duration-300 rounded-full px-4`}
+                  >
+                    {isNarrating ? (
+                      <>
+                        <Pause className="h-5 w-5 mr-2" />
+                        {state.language === "en" ? "Pause Reading" : "Jeda Bacaan"}
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-5 w-5 mr-2" />
+                        {state.language === "en" ? "Read Story Aloud" : "Bacakan Cerita"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>                <div className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
+                  <div className={`transition-all duration-500 ${
+                    activeSegment === 0
+                      ? 'bg-yellow-100 text-gray-800 px-3 py-2 rounded-lg shadow-sm border-l-4 border-yellow-300'
+                      : ''
+                  }`}>
+                    {highlightSpecialWords(currentStoryPage.content)}
+                  </div>
+              </div>
+              
+              {!isSpeechSupported && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    {state.language === "en"
+                      ? "Text-to-speech is not supported in your browser. Please use Chrome, Safari, or Edge for the best experience."
+                      : "Fitur text-to-speech tidak didukung di browser Anda. Silakan gunakan Chrome, Safari, atau Edge untuk pengalaman terbaik."}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Navigation */}
