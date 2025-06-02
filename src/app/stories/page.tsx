@@ -40,6 +40,7 @@ interface Story {
     en: StoryPage[];
     id: StoryPage[];
   };
+  thumbnail?: string; // Add the thumbnail property
   readingTime: number;
   ageGroup: number[];
   category: string;
@@ -77,8 +78,7 @@ export default function StoriesPage() {
         } else {
           const sampleStories: Story[] = [
             {
-              id: "sample-1",
-              title: {
+              id: "sample-1",              title: {
                 en: "The Magical Forest Adventure",
                 id: "Petualangan Hutan Ajaib",
               },
@@ -86,6 +86,7 @@ export default function StoriesPage() {
                 en: "A young explorer discovers magical creatures in an enchanted forest",
                 id: "Seorang penjelajah muda menemukan makhluk ajaib di hutan yang terpesona",
               },
+              thumbnail: "https://image.pollinations.ai/prompt/Colorful%20storybook%20cover%20featuring%20young%20explorer%20in%20magical%20forest%20with%20background%20woods%2C%20colorful%2C%20children%27s%20book%20style?nologo=true",
               pages: {
                 en: [
                   {
@@ -111,8 +112,7 @@ export default function StoriesPage() {
               isRead: false,
             },
             {
-              id: "sample-2",
-              title: {
+              id: "sample-2",              title: {
                 en: "The Space Explorer",
                 id: "Penjelajah Luar Angkasa",
               },
@@ -120,6 +120,7 @@ export default function StoriesPage() {
                 en: "A brave astronaut discovers new planets and makes alien friends",
                 id: "Seorang astronot pemberani menemukan planet baru dan berteman dengan alien",
               },
+              thumbnail: "https://image.pollinations.ai/prompt/Colorful%20storybook%20cover%20featuring%20astronaut%20in%20space%20with%20planets%20and%20alien%20friends%20with%20background%20woods%2C%20colorful%2C%20children%27s%20book%20style?nologo=true",
               pages: {
                 en: [
                   {
@@ -353,12 +354,21 @@ export default function StoriesPage() {
                 key={story.id}
                 className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer group"
                 onClick={() => handleStoryClick(story)}
-              >
-                <CardHeader className="p-0">
+              >                <CardHeader className="p-0">
                   <div className="relative h-48 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                    <div className="text-6xl">
-                      {getCategoryIcon(story.category)}
-                    </div>
+                    {story.thumbnail ? (
+                      <div className="w-full h-full overflow-hidden">
+                        <img 
+                          src={story.thumbnail} 
+                          alt={story.title[state.language]} 
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-6xl">
+                        {getCategoryIcon(story.category)}
+                      </div>
+                    )}
                     <div className="absolute top-3 right-3 flex gap-2">
                       {story.isGenerated && (
                         <Badge className="bg-emerald-500 text-white">

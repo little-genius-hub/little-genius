@@ -5,6 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +14,7 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  ImageIcon,
 } from "lucide-react";
 import { useApp } from "@/store/app-context";
 import { useTranslation } from "@/lib/i18n";
@@ -57,8 +60,84 @@ export default function GeneratedStoryPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   const storyId = params.id as string;
+  // Function to generate an appropriate image prompt based on story content
+  const generateImagePrompt = (title: string, content: string): string => {
+    // Extract key elements from the content to create a more detailed prompt
+    // Look for significant nouns and settings in the text
+    const extractRelevantTerms = (text: string): string[] => {
+      // Common storytelling elements to look for
+      const settings = ['forest', 'castle', 'mountain', 'sea', 'ocean', 'village', 'garden', 'house', 'cave', 'school'];
+      const characters = ['girl', 'boy', 'child', 'children', 'princess', 'prince', 'animal', 'dragon', 'fairy', 'wizard'];
+      const emotions = ['happy', 'sad', 'excited', 'scared', 'magical', 'mysterious', 'amazing', 'wonderful'];
+      
+      const textLower = text.toLowerCase();
+      const foundTerms: string[] = [];
+      
+      // Find matching terms in content
+      [...settings, ...characters, ...emotions].forEach(term => {
+        if (textLower.includes(term) && !foundTerms.includes(term)) {
+          foundTerms.push(term);
+        }
+      });
+      
+      // Add key terms from title
+      title.toLowerCase().split(' ').forEach(word => {
+        if (word.length > 3 && !foundTerms.includes(word)) {
+          foundTerms.push(word);
+        }
+      });
+      
+      return foundTerms;
+    };
+    
+    const keyTerms = extractRelevantTerms(content);
+    
+    // Create a rich, descriptive prompt for better image generation
+    let styleModifiers = "colorful, detailed illustration, children's book style, magical, whimsical, fantasy art";
+    
+    // Combine elements for the final prompt
+    const promptBase = `${title}, ${keyTerms.join(', ')}, ${styleModifiers}`;
+    
+    // Clean and encode the prompt for URL
+    const cleanedPrompt = promptBase
+      .replace(/[^\w\s,]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .substring(0, 200); // Limit prompt length but allow longer for better results
+      
+    return encodeURIComponent(cleanedPrompt);
+  };
+
+  // Function to get the image URL for a story page
+  const getStoryImageUrl = (title: string, content: string): string => {
+    const prompt = generateImagePrompt(title, content);
+    return `https://image.pollinations.ai/prompt/${prompt}%20with%20background%20woods?nologo=true`;
+  };
+  
+  // Function to generate a caption for the image
+  const generateImageCaption = (title: string): string => {
+    // Create a simple caption based on the title
+    return state.language === "en" 
+      ? `Illustration: ${title}` 
+      : `Ilustrasi: ${title}`;
+  };
+
+  // Function to preload the next page image
+  const preloadNextPageImage = () => {
+    if (story && currentPage < story.pages[state.language].length - 1) {
+      const nextPage = story.pages[state.language][currentPage + 1];
+      const imageUrl = getStoryImageUrl(nextPage.title, nextPage.content);
+      
+      // Create and load the image in the browser
+      if (typeof window !== "undefined") {
+        const img = document.createElement("img");
+        img.src = imageUrl;
+      }
+    }
+  };
 
   useEffect(() => {
     const loadStory = async () => {
@@ -203,8 +282,21 @@ export default function GeneratedStoryPage() {
     }
   }, [story]);
 
+  // Reset image loading state when page changes
+  useEffect(() => {
+    setImageLoading(true);
+  }, [currentPage]);
+
+  // Preload next page image once current image is loaded
+  useEffect(() => {
+    if (!imageLoading && story) {
+      preloadNextPageImage();
+    }
+  }, [imageLoading, currentPage, story]);
+
   const handlePreviousPage = () => {
     if (currentPage > 0) {
+      setImageLoading(true);
       setCurrentPage(currentPage - 1);
     }
   };
@@ -242,6 +334,7 @@ export default function GeneratedStoryPage() {
 
   const handleNextPage = () => {
     if (story && currentPage < story.pages[state.language].length - 1) {
+      setImageLoading(true);
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
 
@@ -387,6 +480,54 @@ export default function GeneratedStoryPage() {
           </CardHeader>
 
           <CardContent className="p-8">
+            {/* Story Image */}            <div className="mb-8 rounded-lg overflow-hidden shadow-lg group">
+              <AspectRatio ratio={16 / 9} className="bg-gray-100 overflow-hidden">
+                {imageLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-100 rounded-lg">
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+                      <p className="mt-2 text-sm text-gray-600 font-nunito">
+                        {state.language === "en"
+                          ? "Loading image..."
+                          : "Memuat gambar..."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <Image
+                  src={getStoryImageUrl(
+                    currentStoryPage.title,
+                    currentStoryPage.content
+                  )}
+                  alt={currentStoryPage.title}
+                  fill
+                  className="object-cover rounded-lg transition-transform duration-700 ease-in-out group-hover:scale-110"
+                  priority={currentPage === 0}
+                  onLoadingComplete={() => setImageLoading(false)}
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/placeholder.jpg";
+                    setImageLoading(false);
+                  }}
+                />
+                {!imageLoading && (
+                  <a
+                    href={getStoryImageUrl(currentStoryPage.title, currentStoryPage.content)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-3 right-3 z-20 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full transition-all duration-300 shadow-md backdrop-blur-sm"
+                    title={state.language === "en" ? "View full image" : "Lihat gambar penuh"}
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                  </a>
+                )}
+              </AspectRatio>
+              <p className="text-center text-sm text-gray-500 italic mt-2 font-nunito">
+                {generateImageCaption(currentStoryPage.title)}
+              </p>
+            </div>
+
             {/* Story Text */}
             <div className="prose prose-lg max-w-none">
               <p className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
@@ -411,7 +552,10 @@ export default function GeneratedStoryPage() {
                 {story.pages[state.language].map((_, index) => (
                   <button
                     key={index}
-                    onClick={() => setCurrentPage(index)}
+                    onClick={() => {
+                      setImageLoading(true);
+                      setCurrentPage(index);
+                    }}
                     className={`w-3 h-3 rounded-full transition-all duration-300 ${
                       index === currentPage
                         ? "bg-purple-500 scale-125"

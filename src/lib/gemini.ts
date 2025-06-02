@@ -25,6 +25,7 @@ export interface GeneratedStory {
     en: string;
     id: string;
   };
+  thumbnail: string;
   pages: {
     en: StoryPage[];
     id: StoryPage[];
@@ -113,11 +114,13 @@ Buatkan cerita pendek anak bertema petualangan yang variatif dengan spesifikasi:
 {
   "title": "Judul Cerita",
   "description": "Deskripsi singkat cerita",
+  "thumbnail": "Deskripsi singkat gambar untuk thumbnail cerita yang ramah anak dan berwarna cerah, menampilkan karakter utama dan latar cerita",
   "pages": [
     {
       "pageNumber": 1,
       "title": "Judul Halaman",
-      "content": "Isi cerita dalam 3 paragraf panjang"
+      "content": "Isi cerita dalam 3 paragraf panjang",
+      "imageDescription": "Deskripsi gambar halaman ini yang ramah anak, detail dan berwarna cerah (20-30 kata)"
     }
   ],
   "readingTime": 8,
@@ -125,7 +128,7 @@ Buatkan cerita pendek anak bertema petualangan yang variatif dengan spesifikasi:
   "category": "adventure"
 }
 
-Pastikan cerita mengandung nilai moral positif dan sesuai untuk anak-anak.
+Pastikan deskripsi gambar sangat detail agar dapat diubah menjadi ilustrasi yang menarik. Setiap halaman harus memiliki deskripsi gambar yang berbeda dan sesuai dengan isi cerita di halaman tersebut. Pastikan cerita mengandung nilai moral positif dan sesuai untuk anak-anak.
 `;
     } else {
       return `
@@ -162,11 +165,13 @@ Create a children's adventure short story with specifications:
 {
   "title": "Story Title",
   "description": "Brief story description",
+  "thumbnail": "Short description for a child-friendly, colorful thumbnail image showing the main character and story setting",
   "pages": [
     {
       "pageNumber": 1,
       "title": "Page Title",
-      "content": "Story content in 3 long paragraphs"
+      "content": "Story content in 3 long paragraphs",
+      "imageDescription": "Detailed, child-friendly, colorful image description for this page (20-30 words)"
     }
   ],
   "readingTime": 8,
@@ -174,11 +179,10 @@ Create a children's adventure short story with specifications:
   "category": "adventure"
 }
 
-Ensure the story contains positive moral values suitable for children.
+Ensure image descriptions are very detailed so they can be turned into appealing illustrations. Each page should have a different image description relevant to the content of that page. Ensure the story contains positive moral values suitable for children.
 `;
     }
   }
-
   private parseStoryResponse(
     text: string,
     language: "en" | "id"
@@ -196,6 +200,26 @@ Ensure the story contains positive moral values suitable for children.
       const id = `story-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`;
+        
+      // Generate thumbnail from the thumbnail description
+      const thumbnailDescription = storyData.thumbnail || `Colorful storybook cover featuring ${storyData.title}`;
+      const thumbnailUrl = this.generateImageUrl(thumbnailDescription, true);
+      
+      // Process pages to add illustration URLs
+      const processedPages = (storyData.pages || []).map((page: any) => {
+        // Get image description or create one based on page title
+        const imageDescription = page.imageDescription || `Illustration of "${page.title}"`;
+        
+        // Generate illustration URL using Pollinations AI
+        const illustration = this.generateImageUrl(imageDescription, false);
+        
+        return {
+          pageNumber: page.pageNumber,
+          title: page.title,
+          content: page.content,
+          illustration
+        };
+      });
 
       // Create story object with both languages
       const story: GeneratedStory = {
@@ -208,10 +232,11 @@ Ensure the story contains positive moral values suitable for children.
           language === "id"
             ? { id: storyData.description, en: storyData.description }
             : { en: storyData.description, id: storyData.description },
+        thumbnail: thumbnailUrl,
         pages:
           language === "id"
-            ? { id: storyData.pages, en: storyData.pages }
-            : { en: storyData.pages, id: storyData.pages },
+            ? { id: processedPages, en: processedPages }
+            : { en: processedPages, id: processedPages },
         readingTime: storyData.readingTime || 8,
         ageGroup: storyData.ageGroup || [3, 4, 5, 6, 7, 8],
         category: storyData.category || "adventure",
@@ -223,6 +248,26 @@ Ensure the story contains positive moral values suitable for children.
       console.error("Error parsing story response:", error);
       throw new Error("Failed to parse generated story");
     }
+  }
+
+  private generateImageUrl(prompt: string, isThumb: boolean = false): string {
+    // Ensure the prompt is not empty
+    if (!prompt || prompt.trim() === '') {
+      prompt = isThumb 
+        ? "Colorful storybook cover with child-friendly characters" 
+        : "Children's book illustration";
+    }
+    
+    // Add specific styling based on whether it's a thumbnail or page illustration
+    const enhancedPrompt = isThumb
+      ? `${prompt} with background woods, colorful, children's book style`
+      : `${prompt}, colorful, children's book style`;
+      
+    // Encode the prompt for URL
+    const encodedPrompt = encodeURIComponent(enhancedPrompt);
+    
+    // Create the Pollinations AI URL
+    return `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true`;
   }
 }
 
