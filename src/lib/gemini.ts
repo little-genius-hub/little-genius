@@ -1,3 +1,4 @@
+import { db } from "@/db/config";
 import { collectionProgress } from "@/db/models";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ObjectId } from "mongodb";
@@ -102,7 +103,16 @@ class GeminiService {
       const response = await result.response.text();
       let cleanResponse = response.replace(/```json|```/g, "").trim();
             let hasil = JSON.parse(cleanResponse);
-      // console.log(hasil, "<<<<< response")
+      console.log(hasil, "<<<<< response")
+      let database = await db.getDb()
+      let progressCollection = database.collection("parent_dashboard");
+      await progressCollection.insertOne({
+        childId: new ObjectId(childId),
+        language,
+        analysis: hasil.analysis,
+        overallSummary: hasil.overallSummary,
+        createdAt: new Date(),
+      });
 
       return hasil;
     } catch (error) {

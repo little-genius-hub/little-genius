@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { Bell, Clock, Settings, Star, TrendingUp, Trophy, User } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useApp } from "@/store/app-context"
 
 interface Child {
   id: string
@@ -156,6 +157,7 @@ export default function ParentDashboard() {
   const [children, setChildren] = useState<Child[]>([])
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const { state } = useApp()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -183,12 +185,22 @@ export default function ParentDashboard() {
 
   // Add function to fetch dashboard data
   const fetchDashboardData = async (childId: string) => {
+    const local = localStorage.getItem("little-genius-app-state")
+    // console.log(state.language, "<<<< localstorage item disini")
     try {
-      const response = await fetch(`/api/parent-dashboard?childId=${childId}&language=en`)
+      const response = await fetch(`/api/parent-dashboard`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          childId,
+          language: state.language
+        })
+      })
       if (!response.ok) {
         throw new Error("Failed to fetch dashboard data")
       }
       const data = await response.json()
+      console.log(data, "<<<<< datanya disini")
       setDashboardData(data)
     } catch (err) {
       console.error("Error fetching dashboard data:", err)
@@ -383,54 +395,13 @@ export default function ParentDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {dashboardData?.analysis.analysis.map((skill, index) => (
-                    <div key={index} className="mb-6 last:mb-0">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-semibold text-gray-800">{skill.subject}</h3>
-                        <Badge
-                          variant={
-                            skill.status === "Great"
-                              ? "default"
-                              : skill.status === "Improving"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                          className="px-3 py-1"
-                        >
-                          {skill.status}
-                        </Badge>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">Recommended Games</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {skill.recommendedGames.map((game, idx) => (
-                              <Badge key={idx} variant="outline" className="bg-white">
-                                {game}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <Progress 
-                          value={
-                            skill.status === "Great" 
-                              ? 100 
-                              : skill.status === "Improving" 
-                              ? 60 
-                              : 30
-                          } 
-                          className="h-2"
-                        />
-                      </div>
-                    </div>
-                  ))}
+                  
 
                   <div className="mt-6 p-4 bg-purple-50 rounded-lg">
                     <h4 className="text-sm font-medium text-purple-900 mb-2">Overall Progress</h4>
                     <p className="text-sm text-purple-700">{dashboardData?.analysis.overallSummary}</p>
                   </div>
+                  <button className="border-blue-500">Aku disini</button>
                 </CardContent>
               </Card>
 
@@ -507,7 +478,7 @@ export default function ParentDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selectedChild.achievements.map((achievement) => (
+                  {selectedChild.achievements?.map((achievement) => (
                     <div key={achievement.id} className="p-4 border rounded-lg text-center space-y-2">
                       <div className="text-4xl">{achievement.icon}</div>
                       <h3 className="font-semibold">{achievement.title}</h3>
