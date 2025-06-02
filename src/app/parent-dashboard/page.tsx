@@ -51,6 +51,7 @@ interface ProgressData {
   skill: string
   progress: number
   level: string
+  timeSpent: number
 }
 
 const recentActivities = [
@@ -83,13 +84,7 @@ const recentActivities = [
   },
 ]
 
-const skillProgress: ProgressData[] = [
-  { skill: "Mathematics", progress: 75, level: "Intermediate" },
-  { skill: "Reading", progress: 60, level: "Beginner" },
-  { skill: "Problem Solving", progress: 85, level: "Advanced" },
-  { skill: "Memory", progress: 45, level: "Beginner" },
-  { skill: "Logic", progress: 70, level: "Intermediate" },
-]
+// Removed unused skillProgress variable because it was never read and caused type errors.
 
 const formatTimePlayed = (totalMinutes: number) => {
   const hours = Math.floor(totalMinutes / 60)
@@ -98,6 +93,47 @@ const formatTimePlayed = (totalMinutes: number) => {
     return `${hours}h ${minutes}m`
   }
   return `${minutes}m`
+}
+
+function calculateSkillProgress(progress?: Child['progress']): ProgressData[] {
+  if (!progress) return []
+
+  const numberProgress = progress.numbers.completedLevels.reduce(
+    (acc, level) => ({
+      score: acc.score + level.score,
+      time: acc.time + level.timeSpent / 60, // Convert seconds to minutes
+    }),
+    { score: 0, time: 0 }
+  )
+
+  const letterProgress = progress.letters.completedLevels.reduce(
+    (acc, level) => ({
+      score: acc.score + level.score,
+      time: acc.time + level.timeSpent / 60,
+    }),
+    { score: 0, time: 0 }
+  )
+
+  return [
+    {
+      skill: "Numbers",
+      progress: Math.min(100, (numberProgress.score / (progress.numbers.completedLevels.length * 100)) * 100) || 0,
+      level: getLevelLabel(progress.numbers.level),
+      timeSpent: numberProgress.time
+    },
+    {
+      skill: "Letters",
+      progress: Math.min(100, (letterProgress.score / (progress.letters.completedLevels.length * 100)) * 100) || 0,
+      level: getLevelLabel(progress.letters.level),
+      timeSpent: letterProgress.time
+    }
+  ]
+}
+
+function getLevelLabel(level: number): string {
+  if (level <= 2) return "Beginner"
+  if (level <= 4) return "Intermediate" 
+  return "Advanced"
 }
 
 export default function ParentDashboard() {
@@ -308,14 +344,21 @@ export default function ParentDashboard() {
                   <CardDescription>{selectedChild.name}'s progress across different learning areas</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {skillProgress.map((skill, index) => (
+                  {calculateSkillProgress(selectedChild.progress).map((skill, index) => (
                     <div key={index} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">{skill.skill}</span>
-                        <Badge variant="secondary">{skill.level}</Badge>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {Math.round(skill.timeSpent)}m spent
+                          </span>
+                          <Badge variant="secondary">{skill.level}</Badge>
+                        </div>
                       </div>
                       <Progress value={skill.progress} className="h-2" />
-                      <div className="text-xs text-muted-foreground text-right">{skill.progress}% Complete</div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        {Math.round(skill.progress)}% Complete
+                      </div>
                     </div>
                   ))}
                 </CardContent>
