@@ -158,10 +158,16 @@ export default function ParentDashboard() {
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const { state } = useApp()
+  const [ progress, setProgress ] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const progressData = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/parent_dashboard`)
+        let res = await progressData.json()
+        if(!res.ok) throw await res.json()
+        setProgress(res)
+        console.log(progress)
         const response = await ApiClient.getChildren()
         if (!response.ok) {
           throw new Error("Failed to fetch children data")

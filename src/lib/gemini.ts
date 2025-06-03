@@ -55,7 +55,7 @@ interface ChildProgress {
   gameType: string;
 }
 
-class GeminiService {
+export class GeminiService {
   private model;
 
   constructor() {
