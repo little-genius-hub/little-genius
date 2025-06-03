@@ -330,8 +330,7 @@ Ensure image descriptions are very detailed so they can be turned into appealing
       
     // Encode the prompt for URL
     const encodedPrompt = encodeURIComponent(enhancedPrompt);
-    
-    // Create the Pollinations AI URL
+      // Create the Pollinations AI URL
     return `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true`;
   }
   

@@ -211,7 +211,7 @@ export default function ParentDashboard() {
         throw new Error("Failed to fetch recent activity");
       }
       const recentActivityData = await activity.json();
-      setRecentActivity(recentActivityData);
+      setRecentActivity(recentActivityData[0]);
     } catch (err) {
       console.error("Error fetching dashboard data: ", err);
     }
@@ -288,7 +288,7 @@ export default function ParentDashboard() {
       )
     : 1;
 
-  console.log(progress, "<<<<< progress data");
+  console.log(recentActivity, "<<<<< recent activity");
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
       {/* Header */}
@@ -618,7 +618,7 @@ export default function ParentDashboard() {
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                           <span>Score: {activity.score}%</span>
-                          <span>Duration: {activity.timeSpent}</span>
+                          <span>Duration: {formatTimePlayed(Math.floor(activity.timeSpent / 60))}</span>
                           <span>{new Date(activity.completedAt).toLocaleString()}</span>
                         </div>
                       </div>
