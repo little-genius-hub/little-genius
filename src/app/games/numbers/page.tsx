@@ -37,6 +37,8 @@ const OPERATIONS = [
   },
 ];
 
+const OPERATION_IDS = ["addition", "subtraction", "multiplication", "division"];
+
 export default function NumberGamesPage() {
   const { state } = useApp();
   const { t } = useTranslation(state.language);
@@ -44,6 +46,10 @@ export default function NumberGamesPage() {
   const [selectedOperation, setSelectedOperation] = useState<string | null>(
     null
   );
+  const [operationProgress, setOperationProgress] = useState<
+    Record<string, any[]>
+  >({});
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
 
   const currentProgress = state.currentChild?.progress.numbers || {
     level: 1,
@@ -58,10 +64,40 @@ export default function NumberGamesPage() {
     }
   }, [state.currentChild, router]);
 
-  const isOperationUnlocked = (level: number) => {
-    return (
-      level <= currentProgress.level ||
-      currentProgress.completedLevels.some((cl) => cl.level >= level)
+  useEffect(() => {
+    async function fetchAllProgress() {
+      if (!state.currentChild?.id) return;
+      setIsLoadingProgress(true);
+      const progressObj: Record<string, any[]> = {};
+      for (const op of OPERATION_IDS) {
+        const res = await fetch(
+          `/api/progress/${op}?childId=${state.currentChild.id}`
+        );
+        if (!res.ok) {
+          console.error(`Failed to fetch /api/progress/${op}:`, res.status);
+          progressObj[op] = [];
+          continue;
+        }
+        const data = await res.json();
+        progressObj[op] = data.progress || [];
+      }
+      setOperationProgress(progressObj);
+      setIsLoadingProgress(false);
+    }
+    fetchAllProgress();
+  }, [state.currentChild?.id]);
+
+  // Fungsi cek apakah operation ke-n unlocked
+  const isOperationUnlocked = (opIndex: number) => {
+    // Card pertama (addition) selalu unlocked
+    if (opIndex === 0) return true;
+
+    // Card berikutnya: cek progress card sebelumnya
+    const prevOp = OPERATION_IDS[opIndex - 1];
+    const prevProgress = operationProgress[prevOp] || [];
+    // Harus ada progress level 2 dengan score >= 80
+    return prevProgress.some(
+      (item: any) => item.level === 2 && item.score >= 80
     );
   };
 
@@ -73,12 +109,27 @@ export default function NumberGamesPage() {
   };
 
   const handleOperationSelect = (operation: string, level: number) => {
-    if (!isOperationUnlocked(level)) return;
+    const opIndex = OPERATION_IDS.indexOf(operation);
+    console.log(
+      "handleOperationSelect",
+      operation,
+      level,
+      isOperationUnlocked(opIndex)
+    );
+    if (!isOperationUnlocked(opIndex)) return;
     router.push(`/games/numbers/${operation}`);
   };
 
   if (!state.currentChild) {
     return null;
+  }
+
+  if (isLoadingProgress) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-lg font-semibold">Loading progress...</span>
+      </div>
+    );
   }
 
   return (
@@ -125,8 +176,8 @@ export default function NumberGamesPage() {
             </p>
 
             <div className="grid grid-cols-2 gap-4">
-              {OPERATIONS.map((op) => {
-                const isUnlocked = isOperationUnlocked(op.level);
+              {OPERATIONS.map((op, idx) => {
+                const isUnlocked = isOperationUnlocked(idx);
                 return (
                   <Card
                     key={op.id}
@@ -138,7 +189,10 @@ export default function NumberGamesPage() {
                   >
                     <button
                       className="w-full h-full text-left"
-                      onClick={() => handleOperationSelect(op.id, op.level)}
+                      onClick={() => {
+                        console.log("CLICK", op.id, isUnlocked);
+                        if (isUnlocked) handleOperationSelect(op.id, op.level);
+                      }}
                       disabled={!isUnlocked}
                     >
                       <div

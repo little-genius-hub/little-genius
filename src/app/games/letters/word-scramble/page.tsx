@@ -226,7 +226,6 @@ export default function WordScramblePage() {
     const completedLevel = {
       childId: state.currentChild.id,
       level: gameState.subLevel,
-      subLevel: gameState.subLevel,
       score: gameState.score,
       timeSpent,
       completedAt: new Date(),
