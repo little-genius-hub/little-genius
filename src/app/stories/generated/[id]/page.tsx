@@ -72,7 +72,7 @@ export default function GeneratedStoryPage() {
   const [imagesLoaded, setImagesLoaded] = useState<boolean[]>([]);
 
   const storyId = params.id as string;  const generateImagePrompt = (title: string, content: string, index: number = 0): string => {
-    const extractRelevantTerms = (text: string): string[] => {
+    const extractRelevantTerms = (text: string, idx: number = 0, titleText: string = ""): string[] => {
       const settings = [
         "forest",
         "castle",
@@ -126,11 +126,11 @@ export default function GeneratedStoryPage() {
       });
 
       // Add scene type based on index
-      if (index < scenes.length) {
-        foundTerms.push(scenes[index]);
+      if (idx < scenes.length) {
+        foundTerms.push(scenes[idx]);
       }
 
-      title
+      titleText
         .toLowerCase()
         .split(" ")
         .forEach((word) => {
@@ -140,9 +140,7 @@ export default function GeneratedStoryPage() {
         });
 
       return foundTerms;
-    };
-
-    const keyTerms = extractRelevantTerms(content, index);
+    };    const keyTerms = extractRelevantTerms(content, index, title);
 
     // Different style modifiers for each image to create variety
     const styleModifiers = [
@@ -405,8 +403,7 @@ export default function GeneratedStoryPage() {
       setIsNarrating(false);
       setActiveSegment(null);
     }
-  }, [currentPage]);
-  const narrateStory = async () => {
+  }, [currentPage]);  const narrateStory = async () => {
     if (!story || !isSpeechSupported) return;
 
     if (isNarrating) {
@@ -416,6 +413,9 @@ export default function GeneratedStoryPage() {
       return;
     }
 
+    const currentStoryPage = story.pages[state.language][currentPage];
+    if (!currentStoryPage) return;
+    
     setIsNarrating(true);
 
     try {
