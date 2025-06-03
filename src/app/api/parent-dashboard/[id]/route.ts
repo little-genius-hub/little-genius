@@ -1,19 +1,16 @@
 import { db } from "@/db/config";
-import { GeminiService, geminiService } from "@/lib/gemini";
+import { geminiService } from "@/lib/gemini";
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
 
 //make a get endpoint to get progress by childId
-export async function POST({childId}: {childId: string}, req: Request) {
-  const { language } = await req.json();
-  console.log(language, "<<<< language");
-  console.log(childId, "<<<< childId");
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
-    // const { searchParams } = new URL(req.url);
-    // const childId = searchParams.get("childId");
-    // const language = searchParams.get("language");
+    const { language } = await req.json();
+    const childId = params.id;
+
     console.log(language, "<<<< language");
-    // const gameType = searchParams.get("gameType");
+    console.log(childId, "<<<< childId");
 
     if (!childId) {
       return NextResponse.json(
@@ -26,7 +23,7 @@ export async function POST({childId}: {childId: string}, req: Request) {
       language as "en" | "id",
       childId
     );
-    // console.log(progressSum, "<<<< progressSum");
+
     return NextResponse.json(progressSum);
   } catch (error) {
     return NextResponse.json(
@@ -37,10 +34,10 @@ export async function POST({childId}: {childId: string}, req: Request) {
 }
 
 //make a get endpoint to get progress by childId
-export async function GET({childId}: { childId: string }) {
-  // const { searchParams } = new URL(req.url);
-  // const childId = searchParams.get("childId");
-  // const language = searchParams.get("language");
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  console.log("masukkkkkk")
+  const childId = params.id;
+  // console.log(childId, "<<<< childId");
 
   if (!childId) {
     return NextResponse.json(
@@ -53,7 +50,7 @@ export async function GET({childId}: { childId: string }) {
     const agg = [
   {
     '$match': {
-      'childId': new ObjectId('683ac993efea9a2e2976732a')
+      'childId': new ObjectId(`${childId}`),
     }
   }, {
     '$sort': {

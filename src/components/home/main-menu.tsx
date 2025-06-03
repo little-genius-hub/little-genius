@@ -45,7 +45,7 @@ export function MainMenu() {
 
   const openParentDashboard = () => {
     dispatch({ type: "SET_PARENT_MODE", payload: true });
-    router.push("/parent-dashboard");
+    router.push(`/parent-dashboard`);
   };
   const currentProgress = state.currentChild?.progress || {
     numbers: { level: 1, subLevel: 1, totalScore: 0, completedLevels: [] },

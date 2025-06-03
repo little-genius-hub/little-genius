@@ -62,11 +62,8 @@ interface SkillAnalysis {
 }
 
 interface DashboardData {
-  progress: ProgressData[]
-  analysis: {
     analysis: SkillAnalysis[]
     overallSummary: string
-  }
 }
 
 const recentActivities = [
@@ -158,14 +155,16 @@ export default function ParentDashboard() {
   const [selectedChild, setSelectedChild] = useState<Child | null>(null)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const { state } = useApp()
-  const [ progress, setProgress ] = useState(null)
+  const [ progress, setProgress ] = useState<ProgressData | null>(null)
+  
 
   useEffect(() => {
+    // console.log(selectedChild, "<<<<< selected child")
     const fetchData = async () => {
+      // const { childId } = await params
       try {
-        // const progressData = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/parent_dashboard`)
+        // const progressData = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/parent-dashboard/${childId}`)
         // let res = await progressData.json()
-        // if(!res.ok) throw await res.json()
         // setProgress(res)
         // console.log(progress)
         const response = await ApiClient.getChildren()
@@ -173,13 +172,17 @@ export default function ParentDashboard() {
           throw new Error("Failed to fetch children data")
         }
         const data = await response.json()
+        // console.log(data.children, "<<<<<< data children")
+
         setChildren(data.children)
         if (data.children.length > 0) {
           setSelectedChild(data.children[0])
           // Fetch dashboard data for the first child
           await fetchDashboardData(data.children[0].id)
+          // console.log(data.children[0], "<<<<< selected child")
         }
       } catch (err) {
+        // console.log(err, "<<<<<")
         setError(err instanceof Error ? err.message : "An error occurred")
       } finally {
         setLoading(false)
@@ -191,25 +194,42 @@ export default function ParentDashboard() {
 
   // Add function to fetch dashboard data
   const fetchDashboardData = async (childId: string) => {
-    const local = localStorage.getItem("little-genius-app-state")
-    // console.log(state.language, "<<<< localstorage item disini")
+    // console.log(childId, "<<<<<")
+    // console.log(state.language, "state disini")
     try {
-      const response = await fetch(`/api/parent-dashboard`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/parent-dashboard/${childId}`)
+      if (!res.ok) {
+        throw new Error("Failed to fetch dashboard data")
+      }
+      const data = await res.json()
+      // console.log(data, "<<<<< datanya disini")
+      setDashboardData(data)
+
+      const responseProgress = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/progress?childId=${childId}`)
+      if (!responseProgress.ok) {
+        throw new Error("Failed to fetch dashboard data")
+      }
+      const progressData = await responseProgress.json()
+      setProgress(progressData)
+    } catch (err) {
+      console.error("Error fetching dashboard data: ", err)
+    }
+  }
+
+  async function refreshProgress(childId: string) {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/parent-dashboard/${childId}`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-          childId,
           language: state.language
         })
       })
       if (!response.ok) {
         throw new Error("Failed to fetch dashboard data")
       }
-      const data = await response.json()
-      console.log(data, "<<<<< datanya disini")
-      setDashboardData(data)
-    } catch (err) {
-      console.error("Error fetching dashboard data:", err)
+    } catch (error) {
+      console.log(error, "<<<<< error")
     }
   }
 
@@ -251,7 +271,8 @@ export default function ParentDashboard() {
   const currentLevel = selectedChild.progress
     ? Math.max(selectedChild.progress.numbers.level, selectedChild.progress.letters.level)
     : 1
-
+    
+      console.log(progress, "<<<<< progress data")
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
       {/* Header */}
@@ -401,13 +422,86 @@ export default function ParentDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  
-
-                  <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-purple-900 mb-2">Overall Progress</h4>
-                    <p className="text-sm text-purple-700">{dashboardData?.analysis.overallSummary}</p>
+                  {/* Show skill progress bars */}
+                  {dashboardData ? (
+                    <div className="space-y-6">
+                      {dashboardData.analysis.map((item) => (
+                        <div key={item.subject} className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-800">{item.subject}</span>
+                            <span className="text-xs text-gray-500">
+                              level • 4 h 32 min
+                            </span>
+                          </div>
+                          <Progress value={50} className="h-3 bg-purple-100" />
+                          <div className="text-xs text-right text-purple-700 font-semibold">
+                            50%
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">No progress data available.</div>
+                  )}
+                  <div>
+                    <Button
+                      variant="outline"
+                      className="mt-4 bg-purple-100 text-purple-700 border-purple-300 hover:bg-purple-200 transition"
+                      onClick={() => {
+                        refreshProgress(selectedChild.id)
+                        window.location.reload()
+                      }}
+                    >
+                      Refresh
+                    </Button>
                   </div>
-                  <button className="border-blue-500">Aku disini</button>
+
+                  {/* Skill analysis section */}
+                  {dashboardData?.analysis && dashboardData.analysis.length > 0 && (
+                    <div className="mt-8">
+                      <h4 className="text-base font-semibold text-purple-900 mb-3">Skill Analysis</h4>
+                      <div className="space-y-4">
+                        {dashboardData.analysis.map((skill) => (
+                          <div
+                            key={skill.subject}
+                            className="p-3 rounded-lg border flex flex-col md:flex-row md:items-center md:justify-between bg-purple-50"
+                          >
+                            <div>
+                              <span className="font-medium text-gray-800">{skill.subject}</span>
+                              <span
+                                className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${
+                                  skill.status === "Great"
+                                    ? "bg-green-100 text-green-700"
+                                    : skill.status === "Improving"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {skill.status}
+                              </span>
+                            </div>
+                            {skill.recommendedGames && skill.recommendedGames.length > 0 && (
+                              <div className="mt-2 md:mt-0 flex flex-wrap gap-2">
+                                {skill.recommendedGames.map((game) => (
+                                  <Badge key={game} variant="outline" className="bg-white border-purple-300 text-purple-700">
+                                    {game}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Overall summary */}
+                  {dashboardData?.overallSummary && (
+                    <div className="mt-8 p-4 bg-purple-100 rounded-lg">
+                      <h4 className="text-sm font-semibold text-purple-900 mb-2">Overall Progress</h4>
+                      <p className="text-sm text-purple-800">{dashboardData.overallSummary}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
