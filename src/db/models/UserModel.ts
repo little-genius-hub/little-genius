@@ -3,7 +3,6 @@ import { db } from "../config";
 import { z } from "zod";
 import { comparePassword, hashPassword } from "@/helpers/bcrypt";
 import { signToken } from "@/helpers/jwt";
-import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 
 const UserSchema = z.object({
@@ -17,13 +16,18 @@ const UserSchema = z.object({
     .string()
     .nonempty("Password is required!")
     .min(5, "Password must be at least 5 characters!"),
-  children: z.array(z.object({
-    id: z.string().optional(),
-    name: z.string(),
-    age: z.number(),
-    grade: z.string(), 
-    birthDate: z.string().optional(),
-  })).optional().default([]),
+  children: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z.string(),
+        age: z.number(),
+        grade: z.string(),
+        birthDate: z.string().optional(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 const LoginSchema = z.object({
@@ -45,17 +49,13 @@ class UserModel {
 
   static async create(user: NewUser) {
     UserSchema.parse(user);
-    
+
     const collection = await this.collection();
-    
-    // Check if user already exists
-    const existingUser = await collection.findOne({ 
-      $or: [
-        { email: user.email },
-        { username: user.username }
-      ]
+
+    const existingUser = await collection.findOne({
+      $or: [{ email: user.email }, { username: user.username }],
     });
-    
+
     if (existingUser) {
       if (existingUser.email === user.email) {
         throw { status: 400, message: "Email already exists!" };
@@ -65,7 +65,6 @@ class UserModel {
       }
     }
 
-    // Hash password and create user
     const hashedPassword = hashPassword(user.password);
     const newUser = {
       ...user,
@@ -80,20 +79,22 @@ class UserModel {
   static async login(user: LoginUser) {
     LoginSchema.parse(user);
     const collection = await this.collection();
-    
+
     const existUser = await collection.findOne({ email: user.email });
 
     if (!existUser) throw { status: 404, message: "User not found!" };
-    
+
     const isValid = comparePassword(user.password, existUser.password);
-    if (!isValid) throw { status: 403, message: "Invalid password" };    const access_token = await signToken({
+    if (!isValid) throw { status: 403, message: "Invalid password" };
+    const access_token = await signToken({
       userId: existUser._id.toString(),
       name: existUser.name,
       email: existUser.email,
     });
 
     return access_token;
-  }  static async findById(id: string) {
+  }
+  static async findById(id: string) {
     const collection = await this.collection();
     return await collection.findOne({ _id: new ObjectId(id) });
   }

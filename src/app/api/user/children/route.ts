@@ -3,7 +3,6 @@ import { withAuth } from "@/helpers/auth";
 import UserModel from "@/db/models/UserModel";
 import { ObjectId } from "mongodb";
 
-// GET /api/user/children - Get all children for the authenticated user
 export const GET = withAuth(async (request: NextRequest, { user }) => {
   try {
     const userData = await UserModel.findById(user.userId);
@@ -46,7 +45,6 @@ export const GET = withAuth(async (request: NextRequest, { user }) => {
   }
 });
 
-// POST /api/user/children - Add a new child for the authenticated user
 export const POST = withAuth(async (request: NextRequest, { user }) => {
   try {
     const childData = await request.json();
@@ -87,7 +85,6 @@ export const POST = withAuth(async (request: NextRequest, { user }) => {
   }
 });
 
-// PUT /api/user/children - Update all children at once
 export const PUT = withAuth(async (request: NextRequest, { user }) => {
   try {
     const { children } = await request.json();

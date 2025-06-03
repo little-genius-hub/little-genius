@@ -56,9 +56,8 @@ export default function AdditionGamePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [progressData, setProgressData] = useState<any[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasSavedRef = useRef(false); // Tambahkan ref guard
+  const hasSavedRef = useRef(false);
 
-  // Generate problems based on sub-level
   function generateProblems(subLevel: number): MathProblem[] {
     const problems: MathProblem[] = [];
     for (let i = 0; i < PROBLEMS_PER_LEVEL; i++) {
@@ -93,7 +92,6 @@ export default function AdditionGamePage() {
     return problems;
   }
 
-  // Initialize problems when subLevel changes
   useEffect(() => {
     setGameState((prev) => ({
       ...prev,
@@ -101,12 +99,10 @@ export default function AdditionGamePage() {
     }));
   }, [gameState.subLevel]);
 
-  // Reset start time when subLevel changes
   useEffect(() => {
     setStartTime(Date.now());
   }, [gameState.subLevel]);
 
-  // Function untuk fetch progress dari backend
   async function fetchProgressData(childId: string) {
     try {
       const res = await fetch(`/api/progress/addition?childId=${childId}`);
@@ -119,7 +115,6 @@ export default function AdditionGamePage() {
     }
   }
 
-  // Panggil saat komponen mount atau child berubah
   useEffect(() => {
     if (state.currentChild?.id) {
       fetchProgressData(state.currentChild.id);
@@ -168,7 +163,6 @@ export default function AdditionGamePage() {
       gameState.currentProblem + 1 >= gameState.problems.length;
     const isLastLife = newLives <= 0;
 
-    // Jika nyawa habis atau soal terakhir, langsung set gameComplete tanpa delay
     if (
       (isLastProblem || isLastLife) &&
       !gameState.gameComplete &&
@@ -191,7 +185,6 @@ export default function AdditionGamePage() {
       return;
     }
 
-    // Jika belum game over, tetap pakai delay untuk feedback
     setGameState((prev) => ({
       ...prev,
       showResult: true,
@@ -211,7 +204,6 @@ export default function AdditionGamePage() {
     }, 1500);
   }
 
-  // Save progress to global state dan ke backend
   async function saveProgress(finalScore: number, timeSpent: number) {
     if (!state.currentChild) return;
     const completedLevel = {
@@ -224,7 +216,6 @@ export default function AdditionGamePage() {
       gameType: "addition-number",
     };
 
-    // Kirim ke backend (API Next.js)
     try {
       await fetch("/api/progress", {
         method: "POST",
@@ -232,11 +223,9 @@ export default function AdditionGamePage() {
         body: JSON.stringify(completedLevel),
       });
     } catch (err) {
-      // Optional: tampilkan error jika gagal simpan ke backend
       console.error("Failed to save progress to backend", err);
     }
 
-    // Update state lokal
     const updatedProgress = {
       numbers: {
         ...state.currentChild.progress.numbers,
@@ -255,7 +244,6 @@ export default function AdditionGamePage() {
     });
   }
 
-  // Restart game with current subLevel
   function restartGame() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     hasSavedRef.current = false;
@@ -274,7 +262,6 @@ export default function AdditionGamePage() {
     window.location.reload();
   }
 
-  // Change subLevel and restart game
   function changeSubLevel(newSubLevel: number) {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     hasSavedRef.current = false;
@@ -292,7 +279,6 @@ export default function AdditionGamePage() {
     setStartTime(Date.now());
   }
 
-  // Redirect if no child selected
   useEffect(() => {
     if (!state.isLoading && !state.currentChild) {
       window.location.href = "/";
@@ -302,7 +288,6 @@ export default function AdditionGamePage() {
   const currentProblem = gameState.problems[gameState.currentProblem];
   const progress = ((gameState.currentProblem + 1) / PROBLEMS_PER_LEVEL) * 100;
 
-  // Game complete popup
   if (gameState.gameComplete) {
     const level = gameState.subLevel;
     const timeSpent =

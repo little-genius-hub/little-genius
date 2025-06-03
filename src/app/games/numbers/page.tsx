@@ -58,7 +58,6 @@ export default function NumberGamesPage() {
     completedLevels: [],
   };
 
-  // Redirect jika tidak ada currentChild
   useEffect(() => {
     if (!state.isLoading && !state.currentChild) {
       router.push("/");
@@ -122,7 +121,7 @@ export default function NumberGamesPage() {
   };
 
   if (!state.currentChild) {
-    return null; // Jangan render apapun saat redirect
+    return null;
   }
 
   if (isLoadingProgress) {

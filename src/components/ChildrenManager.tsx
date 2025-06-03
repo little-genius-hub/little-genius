@@ -4,7 +4,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Trash2, Plus, Edit } from "lucide-react";
 
 interface Child {
@@ -20,7 +26,10 @@ interface ChildrenManagerProps {
   onUpdate: (children: Child[]) => void;
 }
 
-export default function ChildrenManager({ children, onUpdate }: ChildrenManagerProps) {
+export default function ChildrenManager({
+  children,
+  onUpdate,
+}: ChildrenManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newChild, setNewChild] = useState<Child>({
@@ -34,7 +43,7 @@ export default function ChildrenManager({ children, onUpdate }: ChildrenManagerP
     if (newChild.name && newChild.age && newChild.grade) {
       const childWithId = {
         ...newChild,
-        id: Date.now().toString(), // Simple ID generation
+        id: Date.now().toString(),
       };
       onUpdate([...children, childWithId]);
       setNewChild({ name: "", age: 0, grade: "", birthDate: "" });
@@ -43,11 +52,11 @@ export default function ChildrenManager({ children, onUpdate }: ChildrenManagerP
   };
 
   const handleDeleteChild = (id: string) => {
-    onUpdate(children.filter(child => child.id !== id));
+    onUpdate(children.filter((child) => child.id !== id));
   };
 
   const handleEditChild = (id: string) => {
-    const child = children.find(c => c.id === id);
+    const child = children.find((c) => c.id === id);
     if (child) {
       setNewChild(child);
       setEditingId(id);
@@ -58,7 +67,7 @@ export default function ChildrenManager({ children, onUpdate }: ChildrenManagerP
   const handleUpdateChild = () => {
     if (editingId && newChild.name && newChild.age && newChild.grade) {
       onUpdate(
-        children.map(child =>
+        children.map((child) =>
           child.id === editingId ? { ...newChild, id: editingId } : child
         )
       );
@@ -104,7 +113,9 @@ export default function ChildrenManager({ children, onUpdate }: ChildrenManagerP
                     <Input
                       id="childName"
                       value={newChild.name}
-                      onChange={(e) => setNewChild({ ...newChild, name: e.target.value })}
+                      onChange={(e) =>
+                        setNewChild({ ...newChild, name: e.target.value })
+                      }
                       placeholder="Child's name"
                     />
                   </div>
@@ -114,7 +125,12 @@ export default function ChildrenManager({ children, onUpdate }: ChildrenManagerP
                       id="childAge"
                       type="number"
                       value={newChild.age}
-                      onChange={(e) => setNewChild({ ...newChild, age: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setNewChild({
+                          ...newChild,
+                          age: parseInt(e.target.value),
+                        })
+                      }
                       placeholder="Age"
                     />
                   </div>
@@ -125,17 +141,23 @@ export default function ChildrenManager({ children, onUpdate }: ChildrenManagerP
                     <Input
                       id="childGrade"
                       value={newChild.grade}
-                      onChange={(e) => setNewChild({ ...newChild, grade: e.target.value })}
+                      onChange={(e) =>
+                        setNewChild({ ...newChild, grade: e.target.value })
+                      }
                       placeholder="e.g., Kindergarten, Grade 1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="childBirthDate">Birth Date (Optional)</Label>
+                    <Label htmlFor="childBirthDate">
+                      Birth Date (Optional)
+                    </Label>
                     <Input
                       id="childBirthDate"
                       type="date"
                       value={newChild.birthDate}
-                      onChange={(e) => setNewChild({ ...newChild, birthDate: e.target.value })}
+                      onChange={(e) =>
+                        setNewChild({ ...newChild, birthDate: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -146,11 +168,7 @@ export default function ChildrenManager({ children, onUpdate }: ChildrenManagerP
                   >
                     {editingId ? "Update" : "Add"} Child
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleCancel}
-                    size="sm"
-                  >
+                  <Button variant="outline" onClick={handleCancel} size="sm">
                     Cancel
                   </Button>
                 </div>
@@ -163,7 +181,9 @@ export default function ChildrenManager({ children, onUpdate }: ChildrenManagerP
         {children.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <p>No children added yet.</p>
-            <p className="text-sm">Click "Add Child" to create your first child profile.</p>
+            <p className="text-sm">
+              Click "Add Child" to create your first child profile.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">

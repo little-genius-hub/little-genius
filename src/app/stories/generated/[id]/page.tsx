@@ -1,9 +1,12 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,10 +14,15 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  ImageIcon,
+  Volume2,
+  Pause,
+  Play,
 } from "lucide-react";
 import { useApp } from "@/store/app-context";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
+import { speechService } from "@/lib/speech";
 
 interface StoryPage {
   pageNumber: number;
@@ -51,20 +59,154 @@ export default function GeneratedStoryPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-
   const [story, setStory] = useState<GeneratedStory | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [isNarrating, setIsNarrating] = useState(false);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(true);
+  const [activeSegment, setActiveSegment] = useState<number | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imagesLoaded, setImagesLoaded] = useState<boolean[]>([]);
 
-  const storyId = params.id as string;
+  const storyId = params.id as string;  const generateImagePrompt = (title: string, content: string, index: number = 0): string => {
+    const extractRelevantTerms = (text: string, idx: number = 0, titleText: string = ""): string[] => {
+      const settings = [
+        "forest",
+        "castle",
+        "mountain",
+        "sea",
+        "ocean",
+        "village",
+        "garden",
+        "house",
+        "cave",
+        "school",
+      ];
+      const characters = [
+        "girl",
+        "boy",
+        "child",
+        "children",
+        "princess",
+        "prince",
+        "animal",
+        "dragon",
+        "fairy",
+        "wizard",
+      ];
+      const emotions = [
+        "happy",
+        "sad",
+        "excited",
+        "scared",
+        "magical",
+        "mysterious",
+        "amazing",
+        "wonderful",
+      ];
+      
+      const scenes = [
+        "beginning", 
+        "action", 
+        "climax", 
+        "resolution", 
+        "ending"
+      ];
+
+      const textLower = text.toLowerCase();
+      const foundTerms: string[] = [];
+
+      [...settings, ...characters, ...emotions].forEach((term) => {
+        if (textLower.includes(term) && !foundTerms.includes(term)) {
+          foundTerms.push(term);
+        }
+      });
+
+      // Add scene type based on index
+      if (idx < scenes.length) {
+        foundTerms.push(scenes[idx]);
+      }
+
+      titleText
+        .toLowerCase()
+        .split(" ")
+        .forEach((word) => {
+          if (word.length > 3 && !foundTerms.includes(word)) {
+            foundTerms.push(word);
+          }
+        });
+
+      return foundTerms;
+    };    const keyTerms = extractRelevantTerms(content, index, title);
+
+    // Different style modifiers for each image to create variety
+    const styleModifiers = [
+      "colorful, detailed illustration, children's book style, magical, whimsical, fantasy art",
+      "vibrant, cartoon style, storybook illustration, cheerful, animated scene",
+      "watercolor painting style, dreamy, soft colors, illustrated storybook, fantasy scene",
+      "digital art, detailed scenery, character focused, dynamic lighting, illustrated for kids",
+      "hand-drawn style, cute characters, bright colors, fairytale scene, child-friendly"
+    ];
+
+    const promptBase = `${title}, ${keyTerms.join(", ")}, ${styleModifiers[index % styleModifiers.length]}`;
+
+    const cleanedPrompt = promptBase
+      .replace(/[^\w\s,]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .substring(0, 200);
+
+    return encodeURIComponent(cleanedPrompt);
+  };
+
+  const getStoryImageUrl = (title: string, content: string, index: number = 0): string => {
+    const prompt = generateImagePrompt(title, content, index);
+    return `https://image.pollinations.ai/prompt/${prompt}%20with%20background%20woods?nologo=true`;
+  };
+  
+  const getStoryImageUrls = (title: string, content: string, count: number = 5): string[] => {
+    const urls: string[] = [];
+    for (let i = 0; i < count; i++) {
+      urls.push(getStoryImageUrl(title, content, i));
+    }
+    return urls;
+  };
+
+  const generateImageCaption = (title: string): string => {
+    return state.language === "en"
+      ? `Illustration: ${title}`
+      : `Ilustrasi: ${title}`;
+  };
+  const preloadNextPageImage = () => {
+    if (story && currentPage < story.pages[state.language].length - 1) {
+      const nextPage = story.pages[state.language][currentPage + 1];
+      const urls = getStoryImageUrls(nextPage.title, nextPage.content, 5);
+
+      if (typeof window !== "undefined") {
+        urls.forEach(url => {
+          const img = document.createElement("img");
+          img.src = url;
+        });
+      }
+    }
+  };
+  
+  const handleImageLoad = (index: number) => {
+    setImagesLoaded(prev => {
+      const newState = [...prev];
+      newState[index] = true;
+      return newState;
+    });
+  };
 
   useEffect(() => {
     const loadStory = async () => {
       try {
         setIsLoading(true);
 
-        // Check local storage cache first
         const cachedStoryStr = localStorage.getItem(`story-${storyId}`);
         const cachedTimestamp = localStorage.getItem(
           `story-${storyId}-timestamp`
@@ -87,13 +229,10 @@ export default function GeneratedStoryPage() {
           }
         }
 
-        // If no cache or cache expired, try to fetch from API
         const response = await fetch(`/api/stories/${storyId}`);
 
         if (response.ok) {
           const { story } = await response.json();
-
-          // Cache the story in localStorage
           localStorage.setItem(`story-${storyId}`, JSON.stringify(story));
           localStorage.setItem(
             `story-${storyId}-timestamp`,
@@ -102,7 +241,6 @@ export default function GeneratedStoryPage() {
 
           setStory(story);
         } else {
-          // Fallback to sample story for demo
           const sampleStory: GeneratedStory = {
             id: storyId,
             title: {
@@ -172,7 +310,6 @@ export default function GeneratedStoryPage() {
             category: "adventure",
             createdAt: new Date(),
           };
-          // Cache the sample story too
           localStorage.setItem(`story-${storyId}`, JSON.stringify(sampleStory));
           localStorage.setItem(
             `story-${storyId}-timestamp`,
@@ -200,42 +337,151 @@ export default function GeneratedStoryPage() {
     if (storyId) {
       loadStory();
     }
-  }, [storyId, state.language]); // Removed toast from dependencies to avoid unnecessary refetching
+  }, [storyId, state.language]);
 
-  // Update isFavorite state when the story loads
   useEffect(() => {
     if (story && typeof story.isFavorite !== "undefined") {
       setIsFavorite(story.isFavorite);
     }
   }, [story]);
+  // Generate and set image URLs when the page changes
+  useEffect(() => {
+    if (story) {
+      const currentStoryPage = story.pages[state.language][currentPage];
+      const urls = getStoryImageUrls(currentStoryPage.title, currentStoryPage.content, 5);
+      setImageUrls(urls);
+      setImagesLoaded(new Array(urls.length).fill(false));
+      setImageLoading(true);
+      setCurrentSlide(0);
+    }
+  }, [currentPage, story, state.language]);
+  
+  // Auto-slide carousel effect
+  useEffect(() => {
+    if (imageUrls.length > 0 && !imageLoading) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % imageUrls.length);
+      }, 5000); // Change slide every 5 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [imageUrls, imageLoading]);
+  
+  // Image loading tracking
+  useEffect(() => {
+    if (imagesLoaded.every(loaded => loaded) && imagesLoaded.length > 0) {
+      setImageLoading(false);
+    }
+  }, [imagesLoaded]);
+  
+  // Preload next page images
+  useEffect(() => {
+    if (!imageLoading && story) {
+      preloadNextPageImage();
+    }
+  }, [imageLoading, currentPage, story]);
+
+  // Check speech support on mount
+  useEffect(() => {
+    const checkSpeechSupport = () => {
+      const supported =
+        typeof window !== "undefined" && "speechSynthesis" in window;
+      setIsSpeechSupported(supported);
+    };
+    checkSpeechSupport();
+
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        speechService.stop();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isNarrating) {
+      speechService.stop();
+      setIsNarrating(false);
+      setActiveSegment(null);
+    }
+  }, [currentPage]);  const narrateStory = async () => {
+    if (!story || !isSpeechSupported) return;
+
+    if (isNarrating) {
+      speechService.stop();
+      setIsNarrating(false);
+      setActiveSegment(null);
+      return;
+    }
+
+    const currentStoryPage = story.pages[state.language][currentPage];
+    if (!currentStoryPage) return;
+    
+    setIsNarrating(true);
+
+    try {
+      await narrateWithAnimation(currentStoryPage.title, true);
+      setActiveSegment(0);
+      await narrateWithAnimation(currentStoryPage.content, false);
+      setIsNarrating(false);
+      setActiveSegment(null);
+    } catch (error) {
+      console.error("Narration error:", error);
+      setIsNarrating(false);
+      setActiveSegment(null);
+    }
+  };
+  // Function to narrate text with animation
+  const narrateWithAnimation = (
+    text: string,
+    isTitle: boolean
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Use child-friendly speech options
+        speechService
+          .speak(text, state.language, { isChildFriendly: true })
+          .then(() => {
+            // Add a small delay between sentences for better comprehension
+            if (!isTitle) {
+              setTimeout(() => {
+                resolve();
+              }, 300); // 300ms pause between sentences
+            } else {
+              resolve();
+            }
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
 
   const handlePreviousPage = () => {
     if (currentPage > 0) {
+      setImageLoading(true);
       setCurrentPage(currentPage - 1);
     }
   };
-  // Add a function to mark a story as read
+
   const markStoryAsRead = () => {
-    // Only proceed if we have a story and it's not already marked as read
     if (story && !story.isRead) {
-      // Update local story object
       const updatedStory = {
         ...story,
         isRead: true,
       };
       setStory(updatedStory);
 
-      // Update in localStorage
       if (storyId) {
         localStorage.setItem(`story-${storyId}`, JSON.stringify(updatedStory));
-        // Also update timestamp to prevent cache expiration
         localStorage.setItem(
           `story-${storyId}-timestamp`,
           new Date().getTime().toString()
         );
       }
 
-      // Optionally update on server
       try {
         fetch(`/api/stories/${storyId}/read`, {
           method: "POST",
@@ -253,10 +499,10 @@ export default function GeneratedStoryPage() {
 
   const handleNextPage = () => {
     if (story && currentPage < story.pages[state.language].length - 1) {
+      setImageLoading(true);
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
 
-      // If this is the last page, mark the story as read
       if (nextPage === story.pages[state.language].length - 1) {
         markStoryAsRead();
       }
@@ -266,16 +512,13 @@ export default function GeneratedStoryPage() {
     const newFavoriteStatus = !isFavorite;
     setIsFavorite(newFavoriteStatus);
 
-    // Also update the story in localStorage and our state
     if (story && storyId) {
-      // Update local story object
       const updatedStory = {
         ...story,
         isFavorite: newFavoriteStatus,
       };
       setStory(updatedStory);
 
-      // Update in localStorage
       try {
         localStorage.setItem(`story-${storyId}`, JSON.stringify(updatedStory));
       } catch (e) {
@@ -291,6 +534,58 @@ export default function GeneratedStoryPage() {
         : state.language === "en"
         ? "Added to favorites"
         : "Ditambahkan ke favorit",
+    });
+  };
+  // Highlight special story elements for interactive reading
+  const highlightSpecialWords = (text: string) => {
+    // Common magical/special words to highlight
+    const specialWords = [
+      "magical",
+      "magic",
+      "sparkle",
+      "fairy",
+      "dragon",
+      "shadow",
+      "wizard",
+      "spell",
+      "potion",
+      "enchanted",
+      "ajaib",
+      "peri",
+      "sihir",
+      "naga",
+      "bayangan",
+      "pesona",
+      "terpesona",
+      "ramuan",
+    ];
+
+    // Split the text by spaces but keep punctuation with words
+    return text.split(/(\s+)/).map((word, idx) => {
+      // Clean word for comparison (remove punctuation)
+      const cleanWord = word.toLowerCase().replace(/[^\w\s]/g, "");
+
+      if (specialWords.some((special) => cleanWord === special)) {
+        return (
+          <span
+            key={idx}
+            className="text-purple-600 font-semibold animate-pulse px-0.5"
+          >
+            {word}
+          </span>
+        );
+      }
+
+      // Check for character dialogue (text in quotes)
+      if (word.includes('"') || word.includes("'") || word.includes("!")) {
+        return (
+          <span key={idx} className="text-blue-600 italic">
+            {word}
+          </span>
+        );
+      }
+
+      return word;
     });
   };
 
@@ -401,14 +696,142 @@ export default function GeneratedStoryPage() {
             </div>
           </CardHeader>
 
-          <CardContent className="p-8">
-            {/* Story Text */}
-            <div className="prose prose-lg max-w-none">
-              <p className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
-                {currentStoryPage.content}
+          <CardContent className="p-8">            {/* Story Image Carousel */}
+            <div className="mb-8 rounded-lg overflow-hidden shadow-lg group">
+              <AspectRatio
+                ratio={16 / 9}
+                className="bg-gray-100 overflow-hidden relative"
+              >
+                {imageLoading && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-100 rounded-lg">
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+                      <p className="mt-2 text-sm text-gray-600 font-nunito">
+                        {state.language === "en"
+                          ? "Loading images..."
+                          : "Memuat gambar..."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Image carousel */}
+                <div className="w-full h-full relative">
+                  {imageUrls.map((url, index) => (
+                    <div 
+                      key={`slide-${index}`}
+                      className={`absolute inset-0 transition-opacity duration-1000 ${
+                        currentSlide === index ? "opacity-100 z-20" : "opacity-0 z-10"
+                      }`}
+                    >
+                      <Image
+                        src={url}
+                        alt={`${currentStoryPage.title} - ${index + 1}`}
+                        fill
+                        className="object-cover rounded-lg transition-transform duration-700 ease-in-out group-hover:scale-110"
+                        priority={currentPage === 0 && index === 0}
+                        onLoadingComplete={() => handleImageLoad(index)}
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/placeholder.jpg";
+                          handleImageLoad(index);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Carousel navigation dots */}
+                <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-2">
+                  {imageUrls.map((_, index) => (
+                    <button
+                      key={`dot-${index}`}
+                      onClick={() => setCurrentSlide(index)}
+                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                        currentSlide === index 
+                          ? "bg-white scale-125 shadow-md" 
+                          : "bg-white/50 hover:bg-white/80"
+                      }`}
+                      aria-label={`Go to image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+                
+                {!imageLoading && (
+                  <a
+                    href={imageUrls[currentSlide]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-3 right-3 z-30 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full transition-all duration-300 shadow-md backdrop-blur-sm"
+                    title={
+                      state.language === "en"
+                        ? "View full image"
+                        : "Lihat gambar penuh"
+                    }
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                  </a>
+                )}
+              </AspectRatio>
+              <p className="text-center text-sm text-gray-500 italic mt-2 font-nunito">
+                {generateImageCaption(currentStoryPage.title)} ({currentSlide + 1}/5)
               </p>
             </div>
-
+            {/* Story Text */}
+            <div className="prose prose-lg max-w-none">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-purple-700 font-nunito mb-0">
+                  {currentStoryPage.title}
+                </h3>{" "}
+                {isSpeechSupported && (                  <Button
+                    onClick={narrateStory}
+                    variant={isNarrating ? "outline" : "default"}
+                    className={`${
+                      isNarrating
+                        ? "bg-purple-100 border-purple-300 animate-pulse"
+                        : "bg-purple-500 hover:bg-purple-600 text-white shadow-md hover:shadow-lg"
+                    } transition-all duration-300 rounded-full px-4`}
+                  >
+                    {isNarrating ? (
+                      <>
+                        <Pause className="h-5 w-5 mr-2" />
+                        {state.language === "en"
+                          ? "Pause Reading"
+                          : "Jeda Bacaan"}
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-5 w-5 mr-2" />
+                        {state.language === "en"
+                          ? "Read Story Aloud"
+                          : "Bacakan Cerita"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>{" "}
+              <div className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
+                <div
+                  className={`transition-all duration-500 ${
+                    activeSegment === 0
+                      ? "bg-yellow-100 text-gray-800 px-3 py-2 rounded-lg shadow-sm border-l-4 border-yellow-300"
+                      : ""
+                  }`}
+                >
+                  {highlightSpecialWords(currentStoryPage.content)}
+                </div>
+              </div>
+              {!isSpeechSupported && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    {state.language === "en"
+                      ? "Text-to-speech is not supported in your browser. Please use Chrome, Safari, or Edge for the best experience."
+                      : "Fitur text-to-speech tidak didukung di browser Anda. Silakan gunakan Chrome, Safari, atau Edge untuk pengalaman terbaik."}
+                  </p>
+                </div>
+              )}
+            </div>
             {/* Navigation */}
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
               <Button
@@ -426,7 +849,10 @@ export default function GeneratedStoryPage() {
                 {story.pages[state.language].map((_, index) => (
                   <button
                     key={index}
-                    onClick={() => setCurrentPage(index)}
+                    onClick={() => {
+                      setImageLoading(true);
+                      setCurrentPage(index);
+                    }}
                     className={`w-3 h-3 rounded-full transition-all duration-300 ${
                       index === currentPage
                         ? "bg-purple-500 scale-125"
@@ -446,7 +872,6 @@ export default function GeneratedStoryPage() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-
             {/* Story Complete */}
             {currentPage === totalPages - 1 && (
               <div className="mt-8 p-6 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-xl text-center">

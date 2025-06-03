@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Star, Heart, BookOpen, Calculator } from "lucide-react"
+import { Star, Heart, BookOpen, Calculator } from "lucide-react";
 
 export function LoadingScreen() {
   return (
@@ -24,7 +24,9 @@ export function LoadingScreen() {
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-white mb-2 animate-float">Little Genius</h1>
+        <h1 className="text-3xl font-bold text-white mb-2 animate-float">
+          Little Genius
+        </h1>
         <p className="text-white/80 mb-6">Loading your learning adventure...</p>
 
         {/* Loading Spinner */}
@@ -33,5 +35,5 @@ export function LoadingScreen() {
         </div>
       </div>
     </div>
-  )
+  );
 }
