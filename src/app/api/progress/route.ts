@@ -62,30 +62,51 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const childId = searchParams.get("childId");
+  const recentActivity = searchParams.get("recentActivity");
   if (!childId) {
     return NextResponse.json({ error: "Missing childId" }, { status: 400 });
   }
 
   const database = await db.getDb();
   const progressColl = database.collection("progress");
-  const agg = [
-    {
-      $match: {
-        childId: new ObjectId(`${childId}`),
+  let agg;
+
+  if (recentActivity) {
+    agg = [
+      {
+        $match: {
+          childId: new ObjectId(`${childId}`),
+        },
       },
-    },
-    {
-      $sort: {
-        gameType: 1,
+      {
+        $sort: {
+          completedAt: -1,
+        },
       },
-    },
-  ];
+      {
+        $limit: 3,
+      },
+    ];
+  } else {
+    [
+      {
+        $match: {
+          childId: new ObjectId(`${childId}`),
+        },
+      },
+      {
+        $sort: {
+          gameType: 1,
+        },
+      },
+    ];
+  }
 
   const progressData = await progressColl.aggregate(agg).toArray();
-  let timeSpent = 0
-  for(let i = 0; i < progressData.length; i++) {
-    let progress = progressData[i]
-    timeSpent += progress.timeSpent
+  let timeSpent = 0;
+  for (let i = 0; i < progressData.length; i++) {
+    let progress = progressData[i];
+    timeSpent += progress.timeSpent;
   }
 
   return NextResponse.json([progressData, timeSpent]);

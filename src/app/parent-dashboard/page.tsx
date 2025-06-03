@@ -143,6 +143,7 @@ export default function ParentDashboard() {
   const { state } = useApp();
   const [progress, setProgress] = useState<ProgressData[]>([]);
   const [timeSpent, setTimeSpent] = useState<number>(0);
+  const [recentActivity, setRecentActivity] = useState<ProgressData[]>([]);
 
   useEffect(() => {
     // console.log(selectedChild, "<<<<< selected child")
@@ -202,6 +203,15 @@ export default function ParentDashboard() {
       const progressData = await responseProgress.json();
       setProgress(progressData[0]);
       setTimeSpent(progressData[1]);
+
+      const activity = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/progress?childId=${childId}&recentActivity=true`
+      );
+      if (!activity.ok) {
+        throw new Error("Failed to fetch recent activity");
+      }
+      const recentActivityData = await activity.json();
+      setRecentActivity(recentActivityData);
     } catch (err) {
       console.error("Error fetching dashboard data: ", err);
     }
@@ -222,6 +232,8 @@ export default function ParentDashboard() {
       if (!response.ok) {
         throw new Error("Failed to fetch dashboard data");
       }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/progress?recentActivity=true`)
     } catch (error) {
       console.log(error, "<<<<< error");
     }
@@ -582,43 +594,32 @@ export default function ParentDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentActivities.map((activity) => (
+                  {recentActivity.map((activity) => (
                     <div
-                      key={activity.id}
+                      key={activity._id}
                       className="flex items-center space-x-4 p-4 border rounded-lg"
                     >
                       <Avatar>
                         <AvatarImage
                           src="/placeholder.svg?height=40&width=40"
-                          alt={activity.childName}
+                          alt={selectedChild?.name}
                         />
-                        <AvatarFallback>{activity.childName[0]}</AvatarFallback>
+                        <AvatarFallback>{selectedChild?.name}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center space-x-2">
                           <span className="font-medium">
-                            {activity.childName}
+                            {selectedChild?.name}
                           </span>
                           <span className="text-muted-foreground">played</span>
                           <span className="font-medium text-purple-600">
-                            {activity.game}
+                            {activity.gameType}
                           </span>
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                           <span>Score: {activity.score}%</span>
-                          <span>Duration: {activity.duration}</span>
-                          <span>{activity.timestamp}</span>
-                        </div>
-                        <div className="flex space-x-1">
-                          {activity.skillsImproved.map((skill, index) => (
-                            <Badge
-                              key={index}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {skill}
-                            </Badge>
-                          ))}
+                          <span>Duration: {activity.timeSpent}</span>
+                          <span>{new Date(activity.completedAt).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
