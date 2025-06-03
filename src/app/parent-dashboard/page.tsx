@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Bell, Clock, Settings, Star, TrendingUp, Trophy, User } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ApiClient } from "@/helpers/api-client"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,29 +19,54 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-// Mock data for demonstration
-const children = [
-  {
-    id: 1,
-    name: "Emma",
-    age: 7,
-    avatar: "/placeholder.svg?height=40&width=40",
-    totalPlayTime: "2h 45m",
-    gamesCompleted: 12,
-    currentStreak: 5,
-    level: 8,
-  },
-  {
-    id: 2,
-    name: "Liam",
-    age: 5,
-    avatar: "/placeholder.svg?height=40&width=40",
-    totalPlayTime: "1h 30m",
-    gamesCompleted: 8,
-    currentStreak: 3,
-    level: 5,
-  },
-]
+interface Child {
+  id: string
+  name: string
+  age: number
+  grade: string
+  birthDate?: string
+  preferredLanguage?: "en" | "id"
+  achievements: any[]
+  progress?: {
+    numbers: {
+      level: number
+      subLevel: number
+      totalScore: number
+      completedLevels: any[]
+    }
+    letters: {
+      level: number
+      subLevel: number
+      totalScore: number
+      completedLevels: any[]
+    }
+    stories: {
+      readStories: any[]
+      favoriteStories: any[]
+    }
+  }
+}
+
+interface ProgressData {
+  skill: string
+  progress: number
+  level: string
+  timeSpent: number
+}
+
+interface SkillAnalysis {
+  subject: string
+  status: "Need Improvement" | "Improving" | "Great"
+  recommendedGames: string[]
+}
+
+interface DashboardData {
+  progress: ProgressData[]
+  analysis: {
+    analysis: SkillAnalysis[]
+    overallSummary: string
+  }
+}
 
 const recentActivities = [
   {
@@ -72,43 +98,141 @@ const recentActivities = [
   },
 ]
 
-const achievements = [
-  {
-    id: 1,
-    title: "Math Wizard",
-    description: "Completed 10 math games",
-    icon: "🧙‍♂️",
-    earnedBy: "Emma",
-    earnedDate: "Yesterday",
-  },
-  {
-    id: 2,
-    title: "Reading Star",
-    description: "Read 5 stories this week",
-    icon: "⭐",
-    earnedBy: "Liam",
-    earnedDate: "2 days ago",
-  },
-  {
-    id: 3,
-    title: "Consistent Player",
-    description: "Played for 5 days in a row",
-    icon: "🔥",
-    earnedBy: "Emma",
-    earnedDate: "3 days ago",
-  },
-]
+// Removed unused skillProgress variable because it was never read and caused type errors.
 
-const skillProgress = [
-  { skill: "Mathematics", progress: 75, level: "Intermediate" },
-  { skill: "Reading", progress: 60, level: "Beginner" },
-  { skill: "Problem Solving", progress: 85, level: "Advanced" },
-  { skill: "Memory", progress: 45, level: "Beginner" },
-  { skill: "Logic", progress: 70, level: "Intermediate" },
-]
+const formatTimePlayed = (totalMinutes: number) => {
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  }
+  return `${minutes}m`
+}
+
+function calculateSkillProgress(progress?: Child['progress']): ProgressData[] {
+  if (!progress) return []
+
+  const numberProgress = progress.numbers.completedLevels.reduce(
+    (acc, level) => ({
+      score: acc.score + level.score,
+      time: acc.time + level.timeSpent / 60, // Convert seconds to minutes
+    }),
+    { score: 0, time: 0 }
+  )
+
+  const letterProgress = progress.letters.completedLevels.reduce(
+    (acc, level) => ({
+      score: acc.score + level.score,
+      time: acc.time + level.timeSpent / 60,
+    }),
+    { score: 0, time: 0 }
+  )
+
+  return [
+    {
+      skill: "Numbers",
+      progress: Math.min(100, (numberProgress.score / (progress.numbers.completedLevels.length * 100)) * 100) || 0,
+      level: getLevelLabel(progress.numbers.level),
+      timeSpent: numberProgress.time
+    },
+    {
+      skill: "Letters",
+      progress: Math.min(100, (letterProgress.score / (progress.letters.completedLevels.length * 100)) * 100) || 0,
+      level: getLevelLabel(progress.letters.level),
+      timeSpent: letterProgress.time
+    }
+  ]
+}
+
+function getLevelLabel(level: number): string {
+  if (level <= 2) return "Beginner"
+  if (level <= 4) return "Intermediate" 
+  return "Advanced"
+}
 
 export default function ParentDashboard() {
-  const [selectedChild, setSelectedChild] = useState(children[0])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [children, setChildren] = useState<Child[]>([])
+  const [selectedChild, setSelectedChild] = useState<Child | null>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await ApiClient.getChildren()
+        if (!response.ok) {
+          throw new Error("Failed to fetch children data")
+        }
+        const data = await response.json()
+        setChildren(data.children)
+        if (data.children.length > 0) {
+          setSelectedChild(data.children[0])
+          // Fetch dashboard data for the first child
+          await fetchDashboardData(data.children[0].id)
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  // Add function to fetch dashboard data
+  const fetchDashboardData = async (childId: string) => {
+    try {
+      const response = await fetch(`/api/parent-dashboard?childId=${childId}&language=en`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard data")
+      }
+      const data = await response.json()
+      setDashboardData(data)
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err)
+    }
+  }
+
+  // Update child selector to fetch new dashboard data when child changes
+  const handleChildChange = async (value: string) => {
+    const child = children.find((c) => c.id === value)
+    if (child) {
+      setSelectedChild(child)
+      await fetchDashboardData(child.id)
+    }
+  }
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  }
+
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>
+  }
+
+  if (!selectedChild) {
+    return <div className="min-h-screen flex items-center justify-center">No children found. Please add a child first.</div>
+  }
+
+  // Calculate stats
+  const totalPlayTime = selectedChild.progress
+    ? Object.values(selectedChild.progress).reduce((acc, curr) => {
+        if ("completedLevels" in curr) {
+          return acc + curr.completedLevels.length * 15 // Assuming average 15 minutes per level
+        }
+        return acc
+      }, 0)
+    : 0
+
+  const gamesCompleted = selectedChild.progress
+    ? selectedChild.progress.numbers.completedLevels.length + selectedChild.progress.letters.completedLevels.length
+    : 0
+
+  const currentLevel = selectedChild.progress
+    ? Math.max(selectedChild.progress.numbers.level, selectedChild.progress.letters.level)
+    : 1
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
@@ -121,7 +245,7 @@ export default function ParentDashboard() {
                 <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                   <Star className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">KidsLearn Parent Portal</h1>
+                <h1 className="text-xl font-bold text-gray-900">Little Genius Parent Dashboard</h1>
               </div>
             </div>
 
@@ -167,25 +291,22 @@ export default function ParentDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
             <Select
-              value={selectedChild.id.toString()}
-              onValueChange={(value) => {
-                const child = children.find((c) => c.id.toString() === value)
-                if (child) setSelectedChild(child)
-              }}
+              value={selectedChild.id}
+              onValueChange={handleChildChange}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select child" />
               </SelectTrigger>
               <SelectContent>
                 {children.map((child) => (
-                  <SelectItem key={child.id} value={child.id.toString()}>
+                  <SelectItem key={child.id} value={child.id}>
                     <div className="flex items-center space-x-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={child.avatar || "/placeholder.svg"} alt={child.name} />
+                        <AvatarImage src="/placeholder.svg" alt={child.name} />
                         <AvatarFallback>{child.name[0]}</AvatarFallback>
                       </Avatar>
                       <span>
-                        {child.name} (Age {child.age})
+                        {child.name} (Grade {child.grade})
                       </span>
                     </div>
                   </SelectItem>
@@ -203,7 +324,7 @@ export default function ParentDashboard() {
               <Clock className="h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{selectedChild.totalPlayTime}</div>
+              <div className="text-2xl font-bold">{formatTimePlayed(totalPlayTime)}</div>
               <p className="text-xs opacity-80">This week</p>
             </CardContent>
           </Card>
@@ -214,19 +335,19 @@ export default function ParentDashboard() {
               <Trophy className="h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{selectedChild.gamesCompleted}</div>
-              <p className="text-xs opacity-80">+3 from last week</p>
+              <div className="text-2xl font-bold">{gamesCompleted}</div>
+              <p className="text-xs opacity-80">Total games completed</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
+              <CardTitle className="text-sm font-medium">Achievements</CardTitle>
               <TrendingUp className="h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{selectedChild.currentStreak} days</div>
-              <p className="text-xs opacity-80">Keep it up!</p>
+              <div className="text-2xl font-bold">{selectedChild.achievements.length}</div>
+              <p className="text-xs opacity-80">Total achievements</p>
             </CardContent>
           </Card>
 
@@ -236,8 +357,8 @@ export default function ParentDashboard() {
               <Star className="h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Level {selectedChild.level}</div>
-              <p className="text-xs opacity-80">2 more to next level</p>
+              <div className="text-2xl font-bold">Level {currentLevel}</div>
+              <p className="text-xs opacity-80">Keep learning!</p>
             </CardContent>
           </Card>
         </div>
@@ -254,22 +375,62 @@ export default function ParentDashboard() {
           <TabsContent value="progress" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Skill Progress */}
-              <Card>
+              <Card className="bg-white shadow-lg rounded-xl">
                 <CardHeader>
-                  <CardTitle>Skill Development</CardTitle>
-                  <CardDescription>{selectedChild.name}'s progress across different learning areas</CardDescription>
+                  <CardTitle className="text-xl font-bold text-gray-900">Skill Development</CardTitle>
+                  <CardDescription className="text-gray-500">
+                    {selectedChild.name}'s learning progress analysis
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {skillProgress.map((skill, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{skill.skill}</span>
-                        <Badge variant="secondary">{skill.level}</Badge>
+                <CardContent>
+                  {dashboardData?.analysis.analysis.map((skill, index) => (
+                    <div key={index} className="mb-6 last:mb-0">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-semibold text-gray-800">{skill.subject}</h3>
+                        <Badge
+                          variant={
+                            skill.status === "Great"
+                              ? "default"
+                              : skill.status === "Improving"
+                              ? "secondary"
+                              : "destructive"
+                          }
+                          className="px-3 py-1"
+                        >
+                          {skill.status}
+                        </Badge>
                       </div>
-                      <Progress value={skill.progress} className="h-2" />
-                      <div className="text-xs text-muted-foreground text-right">{skill.progress}% Complete</div>
+                      
+                      <div className="space-y-3">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Recommended Games</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {skill.recommendedGames.map((game, idx) => (
+                              <Badge key={idx} variant="outline" className="bg-white">
+                                {game}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <Progress 
+                          value={
+                            skill.status === "Great" 
+                              ? 100 
+                              : skill.status === "Improving" 
+                              ? 60 
+                              : 30
+                          } 
+                          className="h-2"
+                        />
+                      </div>
                     </div>
                   ))}
+
+                  <div className="mt-6 p-4 bg-purple-50 rounded-lg">
+                    <h4 className="text-sm font-medium text-purple-900 mb-2">Overall Progress</h4>
+                    <p className="text-sm text-purple-700">{dashboardData?.analysis.overallSummary}</p>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -346,7 +507,7 @@ export default function ParentDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {achievements.map((achievement) => (
+                  {selectedChild.achievements.map((achievement) => (
                     <div key={achievement.id} className="p-4 border rounded-lg text-center space-y-2">
                       <div className="text-4xl">{achievement.icon}</div>
                       <h3 className="font-semibold">{achievement.title}</h3>

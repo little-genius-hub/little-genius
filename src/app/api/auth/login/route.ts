@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       sameSite: 'lax',
     });
 
-    return NextResponse.json({ success: true, message: "Login successful" });
+    return NextResponse.json({ success: true, message: "Login successful", access_token });
   } catch (err) {
     return errHandler(err);
   }

@@ -1,4 +1,6 @@
+import { collectionProgress } from "@/db/models";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { ObjectId } from "mongodb";
 
 const API_KEY = process.env.GEMINI_API_KEY || "";
 
@@ -36,6 +38,23 @@ export interface GeneratedStory {
   createdAt: Date;
 }
 
+interface ProgressAnalysis {
+  subject: string;
+  status: "Need Improvement" | "Improving" | "Great";
+  recommendedGames: string[];
+}
+
+interface ChildProgress {
+  _id: ObjectId;
+  childId: ObjectId;
+  level: number;
+  score: number;
+  timeSpent: number;
+  completedAt: Date;
+  mistakes: number;
+  gameType: string;
+}
+
 class GeminiService {
   private model;
 
@@ -55,6 +74,41 @@ class GeminiService {
     } catch (error) {
       console.error("Error generating story:", error);
       throw new Error("Failed to generate story");
+    }
+  }
+
+  async generateProgress(language: "en" | "id" = "id", childId: string): Promise<ProgressAnalysis> {
+    console.log(childId, "<<<< childId");
+    const collection = await collectionProgress();
+    console.log(collection, "<<<< collection");
+    const rawProgress = await collection.find({
+      childId: new ObjectId(childId),
+    }).toArray();
+    let childProgress: ChildProgress[] = rawProgress.map((doc: any) => ({
+      _id: doc._id,
+      childId: doc.childId,
+      level: doc.level,
+      score: doc.score,
+      timeSpent: doc.timeSpent,
+      completedAt: doc.completedAt,
+      mistakes: doc.mistakes,
+      gameType: doc.gameType,
+    }));
+    console.log(childProgress, "<<<< childProgress");
+    const prompt = this.generateProgressPrompt(language, childProgress);
+    // console.log("masukkkkkk")
+    try {
+      const result = await this.model.generateContent(prompt);
+      // console.log(result.response.text(), "<<<< result");
+      const response = await result.response.text();
+      let cleanResponse = response.replace(/```json|```/g, "").trim();
+            let hasil = JSON.parse(cleanResponse);
+      // console.log(hasil, "<<<<< response")
+
+      return hasil;
+    } catch (error) {
+      console.error("Error generating progress:", error);
+      throw new Error("Failed to generate progress analysis");
     }
   }
 
@@ -250,6 +304,7 @@ Ensure image descriptions are very detailed so they can be turned into appealing
     }
   }
 
+
   private generateImageUrl(prompt: string, isThumb: boolean = false): string {
     // Ensure the prompt is not empty
     if (!prompt || prompt.trim() === '') {
@@ -268,6 +323,83 @@ Ensure image descriptions are very detailed so they can be turned into appealing
     
     // Create the Pollinations AI URL
     return `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true`;
+    
+  private generateProgressPrompt(language: "en" | "id", childProgress: ChildProgress[]): string {
+    let games = [
+      "addition-number",
+      "subtraction-number",
+      "multiplication-number",
+      "division-number",
+      "addition-number",
+      "word-scramble",
+      "word-pronounciation",
+      "stories"
+    ]
+    if (language === "id") {
+      return `
+Analisa data kemajuan pembelajaran anak berikut dan berikan rekomendasi dalam format JSON.
+Gunakan data berikut sebagai acuan: ${JSON.stringify(childProgress)}
+Data akan mencakup:
+- Tipe permainan yang dimainkan (numbers, letters, stories)
+- Skor untuk setiap permainan
+- Waktu yang dihabiskan
+- Tingkat kesalahan
+
+Berikan analisis untuk setiap subject dengan format berikut:
+{
+  "analysis": [
+    {
+      "subject": "string (contoh: 'Numbers', 'Letters', 'Reading')",
+      "status": "Need Improvement" | "Improving" | "Great",
+      "recommendedGames": ["nama game 1", "nama game 2"] (gunakan nama game yang diambil dari daftar berikut: ${games.join(", ")}, setiap game memiliki 3 level, rekomendasikan level yang paling cocok untuk user)
+    }
+  ],
+  "overallSummary": "ringkasan singkat kemajuan anak secara keseluruhan"
+}
+
+Kriteria status:
+- "Need Improvement": skor < 60% atau tingkat kesalahan > 40%
+- "Improving": skor 60-80% atau tingkat kesalahan 20-40%
+- "Great": skor > 80% atau tingkat kesalahan < 20%
+
+Rekomendasi permainan harus sesuai dengan:
+1. Level kemampuan anak saat ini
+2. Area yang perlu ditingkatkan
+3. Pola belajar yang terlihat dari data
+`;
+    } else {
+      return `
+Analyze the following child learning progress data and provide recommendations in JSON format.
+Use the following data as a reference: ${JSON.stringify(childProgress)} 
+The data will include:
+- Types of games played (numbers, letters, stories)
+- Scores for each game
+- Time spent
+- Error rates
+
+Provide analysis for each subject in the following format:
+{
+  "analysis": [
+    {
+      "subject": "string (e.g., 'Numbers', 'Letters', 'Reading')",
+      "status": "Need Improvement" | "Improving" | "Great",
+      "recommendedGames": ["game name 1", "game name 2", "game name 3"] (use game names from the following list: ${games.join(", ")}, each game has 3 levels, recommend the most suitable level for the user)
+    }
+  ],
+  "overallSummary": "brief summary of child's overall progress"
+}
+
+Status criteria:
+- "Need Improvement": score < 60% or error rate > 40%
+- "Improving": score 60-80% or error rate 20-40%
+- "Great": score > 80% or error rate < 20%
+
+Game recommendations should consider:
+1. Child's current ability level
+2. Areas needing improvement
+3. Learning patterns visible in the data
+`;
+    }
   }
 }
 

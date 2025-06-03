@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { collectionProgress } from "@/db/models";
 import { ObjectId } from "mongodb";
+import { geminiService } from "@/lib/gemini";
 
 export async function POST(req: Request) {
   try {
