@@ -8,14 +8,13 @@ export class SpeechService {
   // Using pNInz6obpgDQGcFmaJgB (Adam) for Indonesian
   private enVoiceId = "EXAVITQu4vr4xnSDxMaL";
   private idVoiceId = "pNInz6obpgDQGcFmaJgB";
-  
-  constructor() {
+    constructor() {
     if (typeof window !== "undefined") {
       // Keep the Web Speech API for fallback and recognition
       this.synthesis = window.speechSynthesis;
       
       // Get ElevenLabs API key from environment
-      this.elevenLabsApiKey = process.env.ELEVENLABS_API_KEY || null;
+      this.elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || null;
 
       const SpeechRecognition: typeof window.SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition;

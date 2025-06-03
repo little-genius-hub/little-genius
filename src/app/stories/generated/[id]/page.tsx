@@ -59,7 +59,6 @@ export default function GeneratedStoryPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-
   const [story, setStory] = useState<GeneratedStory | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,9 +67,11 @@ export default function GeneratedStoryPage() {
   const [isNarrating, setIsNarrating] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(true);
   const [activeSegment, setActiveSegment] = useState<number | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imagesLoaded, setImagesLoaded] = useState<boolean[]>([]);
 
-  const storyId = params.id as string;
-  const generateImagePrompt = (title: string, content: string): string => {
+  const storyId = params.id as string;  const generateImagePrompt = (title: string, content: string, index: number = 0): string => {
     const extractRelevantTerms = (text: string): string[] => {
       const settings = [
         "forest",
@@ -106,6 +107,14 @@ export default function GeneratedStoryPage() {
         "amazing",
         "wonderful",
       ];
+      
+      const scenes = [
+        "beginning", 
+        "action", 
+        "climax", 
+        "resolution", 
+        "ending"
+      ];
 
       const textLower = text.toLowerCase();
       const foundTerms: string[] = [];
@@ -115,6 +124,11 @@ export default function GeneratedStoryPage() {
           foundTerms.push(term);
         }
       });
+
+      // Add scene type based on index
+      if (index < scenes.length) {
+        foundTerms.push(scenes[index]);
+      }
 
       title
         .toLowerCase()
@@ -128,12 +142,18 @@ export default function GeneratedStoryPage() {
       return foundTerms;
     };
 
-    const keyTerms = extractRelevantTerms(content);
+    const keyTerms = extractRelevantTerms(content, index);
 
-    let styleModifiers =
-      "colorful, detailed illustration, children's book style, magical, whimsical, fantasy art";
+    // Different style modifiers for each image to create variety
+    const styleModifiers = [
+      "colorful, detailed illustration, children's book style, magical, whimsical, fantasy art",
+      "vibrant, cartoon style, storybook illustration, cheerful, animated scene",
+      "watercolor painting style, dreamy, soft colors, illustrated storybook, fantasy scene",
+      "digital art, detailed scenery, character focused, dynamic lighting, illustrated for kids",
+      "hand-drawn style, cute characters, bright colors, fairytale scene, child-friendly"
+    ];
 
-    const promptBase = `${title}, ${keyTerms.join(", ")}, ${styleModifiers}`;
+    const promptBase = `${title}, ${keyTerms.join(", ")}, ${styleModifiers[index % styleModifiers.length]}`;
 
     const cleanedPrompt = promptBase
       .replace(/[^\w\s,]/gi, " ")
@@ -144,9 +164,17 @@ export default function GeneratedStoryPage() {
     return encodeURIComponent(cleanedPrompt);
   };
 
-  const getStoryImageUrl = (title: string, content: string): string => {
-    const prompt = generateImagePrompt(title, content);
+  const getStoryImageUrl = (title: string, content: string, index: number = 0): string => {
+    const prompt = generateImagePrompt(title, content, index);
     return `https://image.pollinations.ai/prompt/${prompt}%20with%20background%20woods?nologo=true`;
+  };
+  
+  const getStoryImageUrls = (title: string, content: string, count: number = 5): string[] => {
+    const urls: string[] = [];
+    for (let i = 0; i < count; i++) {
+      urls.push(getStoryImageUrl(title, content, i));
+    }
+    return urls;
   };
 
   const generateImageCaption = (title: string): string => {
@@ -154,17 +182,26 @@ export default function GeneratedStoryPage() {
       ? `Illustration: ${title}`
       : `Ilustrasi: ${title}`;
   };
-
   const preloadNextPageImage = () => {
     if (story && currentPage < story.pages[state.language].length - 1) {
       const nextPage = story.pages[state.language][currentPage + 1];
-      const imageUrl = getStoryImageUrl(nextPage.title, nextPage.content);
+      const urls = getStoryImageUrls(nextPage.title, nextPage.content, 5);
 
       if (typeof window !== "undefined") {
-        const img = document.createElement("img");
-        img.src = imageUrl;
+        urls.forEach(url => {
+          const img = document.createElement("img");
+          img.src = url;
+        });
       }
     }
+  };
+  
+  const handleImageLoad = (index: number) => {
+    setImagesLoaded(prev => {
+      const newState = [...prev];
+      newState[index] = true;
+      return newState;
+    });
   };
 
   useEffect(() => {
@@ -309,13 +346,37 @@ export default function GeneratedStoryPage() {
       setIsFavorite(story.isFavorite);
     }
   }, [story]);
-
-  // Reset image loading state when page changes
+  // Generate and set image URLs when the page changes
   useEffect(() => {
-    setImageLoading(true);
-  }, [currentPage]);
-
-  // Preload next page image once current image is loaded
+    if (story) {
+      const currentStoryPage = story.pages[state.language][currentPage];
+      const urls = getStoryImageUrls(currentStoryPage.title, currentStoryPage.content, 5);
+      setImageUrls(urls);
+      setImagesLoaded(new Array(urls.length).fill(false));
+      setImageLoading(true);
+      setCurrentSlide(0);
+    }
+  }, [currentPage, story, state.language]);
+  
+  // Auto-slide carousel effect
+  useEffect(() => {
+    if (imageUrls.length > 0 && !imageLoading) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % imageUrls.length);
+      }, 5000); // Change slide every 5 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [imageUrls, imageLoading]);
+  
+  // Image loading tracking
+  useEffect(() => {
+    if (imagesLoaded.every(loaded => loaded) && imagesLoaded.length > 0) {
+      setImageLoading(false);
+    }
+  }, [imagesLoaded]);
+  
+  // Preload next page images
   useEffect(() => {
     if (!imageLoading && story) {
       preloadNextPageImage();
@@ -635,12 +696,11 @@ export default function GeneratedStoryPage() {
             </div>
           </CardHeader>
 
-          <CardContent className="p-8">
-            {/* Story Image */}{" "}
+          <CardContent className="p-8">            {/* Story Image Carousel */}
             <div className="mb-8 rounded-lg overflow-hidden shadow-lg group">
               <AspectRatio
                 ratio={16 / 9}
-                className="bg-gray-100 overflow-hidden"
+                className="bg-gray-100 overflow-hidden relative"
               >
                 {imageLoading && (
                   <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-100 rounded-lg">
@@ -648,38 +708,62 @@ export default function GeneratedStoryPage() {
                       <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
                       <p className="mt-2 text-sm text-gray-600 font-nunito">
                         {state.language === "en"
-                          ? "Loading image..."
+                          ? "Loading images..."
                           : "Memuat gambar..."}
                       </p>
                     </div>
                   </div>
                 )}
-                <Image
-                  src={getStoryImageUrl(
-                    currentStoryPage.title,
-                    currentStoryPage.content
-                  )}
-                  alt={currentStoryPage.title}
-                  fill
-                  className="object-cover rounded-lg transition-transform duration-700 ease-in-out group-hover:scale-110"
-                  priority={currentPage === 0}
-                  onLoadingComplete={() => setImageLoading(false)}
-                  onError={(e) => {
-                    // Fallback if image fails to load
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = "/placeholder.jpg";
-                    setImageLoading(false);
-                  }}
-                />
+                
+                {/* Image carousel */}
+                <div className="w-full h-full relative">
+                  {imageUrls.map((url, index) => (
+                    <div 
+                      key={`slide-${index}`}
+                      className={`absolute inset-0 transition-opacity duration-1000 ${
+                        currentSlide === index ? "opacity-100 z-20" : "opacity-0 z-10"
+                      }`}
+                    >
+                      <Image
+                        src={url}
+                        alt={`${currentStoryPage.title} - ${index + 1}`}
+                        fill
+                        className="object-cover rounded-lg transition-transform duration-700 ease-in-out group-hover:scale-110"
+                        priority={currentPage === 0 && index === 0}
+                        onLoadingComplete={() => handleImageLoad(index)}
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/placeholder.jpg";
+                          handleImageLoad(index);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Carousel navigation dots */}
+                <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-2">
+                  {imageUrls.map((_, index) => (
+                    <button
+                      key={`dot-${index}`}
+                      onClick={() => setCurrentSlide(index)}
+                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                        currentSlide === index 
+                          ? "bg-white scale-125 shadow-md" 
+                          : "bg-white/50 hover:bg-white/80"
+                      }`}
+                      aria-label={`Go to image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+                
                 {!imageLoading && (
                   <a
-                    href={getStoryImageUrl(
-                      currentStoryPage.title,
-                      currentStoryPage.content
-                    )}
+                    href={imageUrls[currentSlide]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="absolute bottom-3 right-3 z-20 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full transition-all duration-300 shadow-md backdrop-blur-sm"
+                    className="absolute bottom-3 right-3 z-30 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full transition-all duration-300 shadow-md backdrop-blur-sm"
                     title={
                       state.language === "en"
                         ? "View full image"
@@ -691,7 +775,7 @@ export default function GeneratedStoryPage() {
                 )}
               </AspectRatio>
               <p className="text-center text-sm text-gray-500 italic mt-2 font-nunito">
-                {generateImageCaption(currentStoryPage.title)}
+                {generateImageCaption(currentStoryPage.title)} ({currentSlide + 1}/5)
               </p>
             </div>
             {/* Story Text */}
@@ -700,11 +784,9 @@ export default function GeneratedStoryPage() {
                 <h3 className="text-xl font-semibold text-purple-700 font-nunito mb-0">
                   {currentStoryPage.title}
                 </h3>{" "}
-                {isSpeechSupported && (
-                  <Button
+                {isSpeechSupported && (                  <Button
                     onClick={narrateStory}
                     variant={isNarrating ? "outline" : "default"}
-                    size="md"
                     className={`${
                       isNarrating
                         ? "bg-purple-100 border-purple-300 animate-pulse"
