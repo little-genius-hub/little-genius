@@ -83,5 +83,5 @@ export async function GET(req: Request) {
 
   const progressData = await progressColl.aggregate(agg).toArray();
 
-  return NextResponse.json({ progress: progressData });
+  return NextResponse.json(progressData);
 }

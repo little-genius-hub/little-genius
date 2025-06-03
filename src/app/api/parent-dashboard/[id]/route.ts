@@ -34,9 +34,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 }
 
 //make a get endpoint to get progress by childId
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: Promise<{ id: string }> } }) {
   console.log("masukkkkkk")
-  const childId = params.id;
+  const childId = await params.id;
   // console.log(childId, "<<<< childId");
 
   if (!childId) {
