@@ -59,7 +59,6 @@ export default function GeneratedStoryPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-
   const [story, setStory] = useState<GeneratedStory | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,82 +67,139 @@ export default function GeneratedStoryPage() {
   const [isNarrating, setIsNarrating] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(true);
   const [activeSegment, setActiveSegment] = useState<number | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imagesLoaded, setImagesLoaded] = useState<boolean[]>([]);
 
-  const storyId = params.id as string;
-  // Function to generate an appropriate image prompt based on story content
-  const generateImagePrompt = (title: string, content: string): string => {
-    // Extract key elements from the content to create a more detailed prompt
-    // Look for significant nouns and settings in the text
-    const extractRelevantTerms = (text: string): string[] => {
-      // Common storytelling elements to look for
-      const settings = ['forest', 'castle', 'mountain', 'sea', 'ocean', 'village', 'garden', 'house', 'cave', 'school'];
-      const characters = ['girl', 'boy', 'child', 'children', 'princess', 'prince', 'animal', 'dragon', 'fairy', 'wizard'];
-      const emotions = ['happy', 'sad', 'excited', 'scared', 'magical', 'mysterious', 'amazing', 'wonderful'];
+  const storyId = params.id as string;  const generateImagePrompt = (title: string, content: string, index: number = 0): string => {
+    const extractRelevantTerms = (text: string, idx: number = 0, titleText: string = ""): string[] => {
+      const settings = [
+        "forest",
+        "castle",
+        "mountain",
+        "sea",
+        "ocean",
+        "village",
+        "garden",
+        "house",
+        "cave",
+        "school",
+      ];
+      const characters = [
+        "girl",
+        "boy",
+        "child",
+        "children",
+        "princess",
+        "prince",
+        "animal",
+        "dragon",
+        "fairy",
+        "wizard",
+      ];
+      const emotions = [
+        "happy",
+        "sad",
+        "excited",
+        "scared",
+        "magical",
+        "mysterious",
+        "amazing",
+        "wonderful",
+      ];
       
+      const scenes = [
+        "beginning", 
+        "action", 
+        "climax", 
+        "resolution", 
+        "ending"
+      ];
+
       const textLower = text.toLowerCase();
       const foundTerms: string[] = [];
-      
-      // Find matching terms in content
-      [...settings, ...characters, ...emotions].forEach(term => {
+
+      [...settings, ...characters, ...emotions].forEach((term) => {
         if (textLower.includes(term) && !foundTerms.includes(term)) {
           foundTerms.push(term);
         }
       });
-      
-      // Add key terms from title
-      title.toLowerCase().split(' ').forEach(word => {
-        if (word.length > 3 && !foundTerms.includes(word)) {
-          foundTerms.push(word);
-        }
-      });
-      
+
+      // Add scene type based on index
+      if (idx < scenes.length) {
+        foundTerms.push(scenes[idx]);
+      }
+
+      titleText
+        .toLowerCase()
+        .split(" ")
+        .forEach((word) => {
+          if (word.length > 3 && !foundTerms.includes(word)) {
+            foundTerms.push(word);
+          }
+        });
+
       return foundTerms;
-    };
-    
-    const keyTerms = extractRelevantTerms(content);
-    
-    // Create a rich, descriptive prompt for better image generation
-    let styleModifiers = "colorful, detailed illustration, children's book style, magical, whimsical, fantasy art";
-    
-    // Combine elements for the final prompt
-    const promptBase = `${title}, ${keyTerms.join(', ')}, ${styleModifiers}`;
-    
-    // Clean and encode the prompt for URL
+    };    const keyTerms = extractRelevantTerms(content, index, title);
+
+    // Different style modifiers for each image to create variety
+    const styleModifiers = [
+      "colorful, detailed illustration, children's book style, magical, whimsical, fantasy art",
+      "vibrant, cartoon style, storybook illustration, cheerful, animated scene",
+      "watercolor painting style, dreamy, soft colors, illustrated storybook, fantasy scene",
+      "digital art, detailed scenery, character focused, dynamic lighting, illustrated for kids",
+      "hand-drawn style, cute characters, bright colors, fairytale scene, child-friendly"
+    ];
+
+    const promptBase = `${title}, ${keyTerms.join(", ")}, ${styleModifiers[index % styleModifiers.length]}`;
+
     const cleanedPrompt = promptBase
       .replace(/[^\w\s,]/gi, " ")
       .replace(/\s+/g, " ")
       .trim()
-      .substring(0, 200); // Limit prompt length but allow longer for better results
-      
+      .substring(0, 200);
+
     return encodeURIComponent(cleanedPrompt);
   };
 
-  // Function to get the image URL for a story page
-  const getStoryImageUrl = (title: string, content: string): string => {
-    const prompt = generateImagePrompt(title, content);
+  const getStoryImageUrl = (title: string, content: string, index: number = 0): string => {
+    const prompt = generateImagePrompt(title, content, index);
     return `https://image.pollinations.ai/prompt/${prompt}%20with%20background%20woods?nologo=true`;
   };
   
-  // Function to generate a caption for the image
-  const generateImageCaption = (title: string): string => {
-    // Create a simple caption based on the title
-    return state.language === "en" 
-      ? `Illustration: ${title}` 
-      : `Ilustrasi: ${title}`;
+  const getStoryImageUrls = (title: string, content: string, count: number = 5): string[] => {
+    const urls: string[] = [];
+    for (let i = 0; i < count; i++) {
+      urls.push(getStoryImageUrl(title, content, i));
+    }
+    return urls;
   };
 
-  // Function to preload the next page image
+  const generateImageCaption = (title: string): string => {
+    return state.language === "en"
+      ? `Illustration: ${title}`
+      : `Ilustrasi: ${title}`;
+  };
   const preloadNextPageImage = () => {
     if (story && currentPage < story.pages[state.language].length - 1) {
       const nextPage = story.pages[state.language][currentPage + 1];
-      const imageUrl = getStoryImageUrl(nextPage.title, nextPage.content);
-      
-      // Create and load the image in the browser
+      const urls = getStoryImageUrls(nextPage.title, nextPage.content, 5);
+
       if (typeof window !== "undefined") {
-        const img = document.createElement("img");
-        img.src = imageUrl;
+        urls.forEach(url => {
+          const img = document.createElement("img");
+          img.src = url;
+        });
       }
     }
+  };
+  
+  const handleImageLoad = (index: number) => {
+    setImagesLoaded(prev => {
+      const newState = [...prev];
+      newState[index] = true;
+      return newState;
+    });
   };
 
   useEffect(() => {
@@ -288,13 +344,37 @@ export default function GeneratedStoryPage() {
       setIsFavorite(story.isFavorite);
     }
   }, [story]);
-
-  // Reset image loading state when page changes
+  // Generate and set image URLs when the page changes
   useEffect(() => {
-    setImageLoading(true);
-  }, [currentPage]);
-
-  // Preload next page image once current image is loaded
+    if (story) {
+      const currentStoryPage = story.pages[state.language][currentPage];
+      const urls = getStoryImageUrls(currentStoryPage.title, currentStoryPage.content, 5);
+      setImageUrls(urls);
+      setImagesLoaded(new Array(urls.length).fill(false));
+      setImageLoading(true);
+      setCurrentSlide(0);
+    }
+  }, [currentPage, story, state.language]);
+  
+  // Auto-slide carousel effect
+  useEffect(() => {
+    if (imageUrls.length > 0 && !imageLoading) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % imageUrls.length);
+      }, 5000); // Change slide every 5 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [imageUrls, imageLoading]);
+  
+  // Image loading tracking
+  useEffect(() => {
+    if (imagesLoaded.every(loaded => loaded) && imagesLoaded.length > 0) {
+      setImageLoading(false);
+    }
+  }, [imagesLoaded]);
+  
+  // Preload next page images
   useEffect(() => {
     if (!imageLoading && story) {
       preloadNextPageImage();
@@ -304,12 +384,12 @@ export default function GeneratedStoryPage() {
   // Check speech support on mount
   useEffect(() => {
     const checkSpeechSupport = () => {
-      const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+      const supported =
+        typeof window !== "undefined" && "speechSynthesis" in window;
       setIsSpeechSupported(supported);
     };
     checkSpeechSupport();
 
-    // Cleanup any active narration when unmounting
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         speechService.stop();
@@ -317,37 +397,31 @@ export default function GeneratedStoryPage() {
     };
   }, []);
 
-  // Stop narration when changing pages
   useEffect(() => {
     if (isNarrating) {
       speechService.stop();
       setIsNarrating(false);
       setActiveSegment(null);
     }
-  }, [currentPage]);  // Function to handle the narration of the story
-  const narrateStory = async () => {
+  }, [currentPage]);  const narrateStory = async () => {
     if (!story || !isSpeechSupported) return;
 
     if (isNarrating) {
-      // If already narrating, stop
       speechService.stop();
       setIsNarrating(false);
       setActiveSegment(null);
       return;
     }
 
+    const currentStoryPage = story.pages[state.language][currentPage];
+    if (!currentStoryPage) return;
+    
     setIsNarrating(true);
 
     try {
-      // First narrate title
       await narrateWithAnimation(currentStoryPage.title, true);
-      
-      // Highlight the entire content while narrating
       setActiveSegment(0);
-      
-      // Now narrate the entire page content at once instead of sentence by sentence
       await narrateWithAnimation(currentStoryPage.content, false);
-      
       setIsNarrating(false);
       setActiveSegment(null);
     } catch (error) {
@@ -357,11 +431,15 @@ export default function GeneratedStoryPage() {
     }
   };
   // Function to narrate text with animation
-  const narrateWithAnimation = (text: string, isTitle: boolean): Promise<void> => {
+  const narrateWithAnimation = (
+    text: string,
+    isTitle: boolean
+  ): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
         // Use child-friendly speech options
-        speechService.speak(text, state.language, { isChildFriendly: true })
+        speechService
+          .speak(text, state.language, { isChildFriendly: true })
           .then(() => {
             // Add a small delay between sentences for better comprehension
             if (!isTitle) {
@@ -462,39 +540,51 @@ export default function GeneratedStoryPage() {
   const highlightSpecialWords = (text: string) => {
     // Common magical/special words to highlight
     const specialWords = [
-      'magical', 'magic', 'sparkle', 'fairy', 'dragon', 'shadow', 'wizard',
-      'spell', 'potion', 'enchanted', 'ajaib', 'peri', 'sihir', 'naga',
-      'bayangan', 'pesona', 'terpesona', 'ramuan'
+      "magical",
+      "magic",
+      "sparkle",
+      "fairy",
+      "dragon",
+      "shadow",
+      "wizard",
+      "spell",
+      "potion",
+      "enchanted",
+      "ajaib",
+      "peri",
+      "sihir",
+      "naga",
+      "bayangan",
+      "pesona",
+      "terpesona",
+      "ramuan",
     ];
-    
+
     // Split the text by spaces but keep punctuation with words
     return text.split(/(\s+)/).map((word, idx) => {
       // Clean word for comparison (remove punctuation)
-      const cleanWord = word.toLowerCase().replace(/[^\w\s]/g, '');
-      
-      if (specialWords.some(special => cleanWord === special)) {
+      const cleanWord = word.toLowerCase().replace(/[^\w\s]/g, "");
+
+      if (specialWords.some((special) => cleanWord === special)) {
         return (
-          <span 
-            key={idx} 
+          <span
+            key={idx}
             className="text-purple-600 font-semibold animate-pulse px-0.5"
           >
             {word}
           </span>
         );
       }
-      
+
       // Check for character dialogue (text in quotes)
       if (word.includes('"') || word.includes("'") || word.includes("!")) {
         return (
-          <span 
-            key={idx} 
-            className="text-blue-600 italic"
-          >
+          <span key={idx} className="text-blue-600 italic">
             {word}
           </span>
         );
       }
-      
+
       return word;
     });
   };
@@ -606,94 +696,132 @@ export default function GeneratedStoryPage() {
             </div>
           </CardHeader>
 
-          <CardContent className="p-8">
-            {/* Story Image */}            <div className="mb-8 rounded-lg overflow-hidden shadow-lg group">
-              <AspectRatio ratio={16 / 9} className="bg-gray-100 overflow-hidden">
+          <CardContent className="p-8">            {/* Story Image Carousel */}
+            <div className="mb-8 rounded-lg overflow-hidden shadow-lg group">
+              <AspectRatio
+                ratio={16 / 9}
+                className="bg-gray-100 overflow-hidden relative"
+              >
                 {imageLoading && (
                   <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-100 rounded-lg">
                     <div className="flex flex-col items-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
                       <p className="mt-2 text-sm text-gray-600 font-nunito">
                         {state.language === "en"
-                          ? "Loading image..."
+                          ? "Loading images..."
                           : "Memuat gambar..."}
                       </p>
                     </div>
                   </div>
                 )}
-                <Image
-                  src={getStoryImageUrl(
-                    currentStoryPage.title,
-                    currentStoryPage.content
-                  )}
-                  alt={currentStoryPage.title}
-                  fill
-                  className="object-cover rounded-lg transition-transform duration-700 ease-in-out group-hover:scale-110"
-                  priority={currentPage === 0}
-                  onLoadingComplete={() => setImageLoading(false)}
-                  onError={(e) => {
-                    // Fallback if image fails to load
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = "/placeholder.jpg";
-                    setImageLoading(false);
-                  }}
-                />
+                
+                {/* Image carousel */}
+                <div className="w-full h-full relative">
+                  {imageUrls.map((url, index) => (
+                    <div 
+                      key={`slide-${index}`}
+                      className={`absolute inset-0 transition-opacity duration-1000 ${
+                        currentSlide === index ? "opacity-100 z-20" : "opacity-0 z-10"
+                      }`}
+                    >
+                      <Image
+                        src={url}
+                        alt={`${currentStoryPage.title} - ${index + 1}`}
+                        fill
+                        className="object-cover rounded-lg transition-transform duration-700 ease-in-out group-hover:scale-110"
+                        priority={currentPage === 0 && index === 0}
+                        onLoadingComplete={() => handleImageLoad(index)}
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/placeholder.jpg";
+                          handleImageLoad(index);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Carousel navigation dots */}
+                <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-2">
+                  {imageUrls.map((_, index) => (
+                    <button
+                      key={`dot-${index}`}
+                      onClick={() => setCurrentSlide(index)}
+                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                        currentSlide === index 
+                          ? "bg-white scale-125 shadow-md" 
+                          : "bg-white/50 hover:bg-white/80"
+                      }`}
+                      aria-label={`Go to image ${index + 1}`}
+                    />
+                  ))}
+                </div>
+                
                 {!imageLoading && (
                   <a
-                    href={getStoryImageUrl(currentStoryPage.title, currentStoryPage.content)}
+                    href={imageUrls[currentSlide]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="absolute bottom-3 right-3 z-20 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full transition-all duration-300 shadow-md backdrop-blur-sm"
-                    title={state.language === "en" ? "View full image" : "Lihat gambar penuh"}
+                    className="absolute bottom-3 right-3 z-30 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full transition-all duration-300 shadow-md backdrop-blur-sm"
+                    title={
+                      state.language === "en"
+                        ? "View full image"
+                        : "Lihat gambar penuh"
+                    }
                   >
                     <ImageIcon className="w-5 h-5" />
                   </a>
                 )}
               </AspectRatio>
               <p className="text-center text-sm text-gray-500 italic mt-2 font-nunito">
-                {generateImageCaption(currentStoryPage.title)}
+                {generateImageCaption(currentStoryPage.title)} ({currentSlide + 1}/5)
               </p>
             </div>
-
             {/* Story Text */}
             <div className="prose prose-lg max-w-none">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-purple-700 font-nunito mb-0">
                   {currentStoryPage.title}
-                </h3>                {isSpeechSupported && (
-                  <Button
+                </h3>{" "}
+                {isSpeechSupported && (                  <Button
                     onClick={narrateStory}
                     variant={isNarrating ? "outline" : "default"}
-                    size="md"
                     className={`${
-                      isNarrating 
-                        ? 'bg-purple-100 border-purple-300 animate-pulse' 
-                        : 'bg-purple-500 hover:bg-purple-600 text-white shadow-md hover:shadow-lg'
+                      isNarrating
+                        ? "bg-purple-100 border-purple-300 animate-pulse"
+                        : "bg-purple-500 hover:bg-purple-600 text-white shadow-md hover:shadow-lg"
                     } transition-all duration-300 rounded-full px-4`}
                   >
                     {isNarrating ? (
                       <>
                         <Pause className="h-5 w-5 mr-2" />
-                        {state.language === "en" ? "Pause Reading" : "Jeda Bacaan"}
+                        {state.language === "en"
+                          ? "Pause Reading"
+                          : "Jeda Bacaan"}
                       </>
                     ) : (
                       <>
                         <Volume2 className="h-5 w-5 mr-2" />
-                        {state.language === "en" ? "Read Story Aloud" : "Bacakan Cerita"}
+                        {state.language === "en"
+                          ? "Read Story Aloud"
+                          : "Bacakan Cerita"}
                       </>
                     )}
                   </Button>
                 )}
-              </div>                <div className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
-                  <div className={`transition-all duration-500 ${
+              </div>{" "}
+              <div className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
+                <div
+                  className={`transition-all duration-500 ${
                     activeSegment === 0
-                      ? 'bg-yellow-100 text-gray-800 px-3 py-2 rounded-lg shadow-sm border-l-4 border-yellow-300'
-                      : ''
-                  }`}>
-                    {highlightSpecialWords(currentStoryPage.content)}
-                  </div>
+                      ? "bg-yellow-100 text-gray-800 px-3 py-2 rounded-lg shadow-sm border-l-4 border-yellow-300"
+                      : ""
+                  }`}
+                >
+                  {highlightSpecialWords(currentStoryPage.content)}
+                </div>
               </div>
-              
               {!isSpeechSupported && (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
@@ -704,7 +832,6 @@ export default function GeneratedStoryPage() {
                 </div>
               )}
             </div>
-
             {/* Navigation */}
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
               <Button
@@ -745,7 +872,6 @@ export default function GeneratedStoryPage() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-
             {/* Story Complete */}
             {currentPage === totalPages - 1 && (
               <div className="mt-8 p-6 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-xl text-center">
