@@ -109,9 +109,9 @@ export default function AdditionGamePage() {
   // Function untuk fetch progress dari backend
   async function fetchProgressData(childId: string) {
     try {
-      const res = await fetch(`/api/progress/numbers?childId=${childId}`);
+      const res = await fetch(`/api/progress/addition?childId=${childId}`);
       const data = await res.json();
-      console.log("🚀 ~ fetchProgressData ~ data:", data.progress);
+
       setProgressData(data.progress || []);
     } catch (err) {
       console.error("Failed to fetch progress data", err);
@@ -125,6 +125,37 @@ export default function AdditionGamePage() {
       fetchProgressData(state.currentChild.id);
     }
   }, [state.currentChild?.id]);
+
+  // Tambahkan useEffect ini untuk auto set subLevel aktif
+  useEffect(() => {
+    if (!progressData || progressData.length === 0) return;
+
+    // Cek apakah level 2 unlocked (skor level 1 >= 80)
+    const level1Score = progressData
+      .filter((item: any) => item.level === 1)
+      .map((item: any) => item.score);
+    const isLevel2Unlocked =
+      level1Score.length > 0 && Math.max(...level1Score) >= 80;
+
+    // Cek apakah level 3 unlocked (skor level 2 >= 80)
+    const level2Score = progressData
+      .filter((item: any) => item.level === 2)
+      .map((item: any) => item.score);
+    const isLevel3Unlocked =
+      level2Score.length > 0 && Math.max(...level2Score) >= 80;
+
+    let highest = 1;
+    if (isLevel3Unlocked) {
+      highest = 3;
+    } else if (isLevel2Unlocked) {
+      highest = 2;
+    }
+
+    // Set subLevel hanya jika berbeda dari state sekarang
+    setGameState((prev) =>
+      prev.subLevel !== highest ? { ...prev, subLevel: highest } : prev
+    );
+  }, [progressData]);
 
   // Handle answer submission
   function handleAnswerSubmit() {
