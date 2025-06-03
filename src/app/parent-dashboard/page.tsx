@@ -163,11 +163,11 @@ export default function ParentDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const progressData = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/parent_dashboard`)
-        let res = await progressData.json()
-        if(!res.ok) throw await res.json()
-        setProgress(res)
-        console.log(progress)
+        // const progressData = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/parent_dashboard`)
+        // let res = await progressData.json()
+        // if(!res.ok) throw await res.json()
+        // setProgress(res)
+        // console.log(progress)
         const response = await ApiClient.getChildren()
         if (!response.ok) {
           throw new Error("Failed to fetch children data")
