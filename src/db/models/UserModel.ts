@@ -94,6 +94,42 @@ class UserModel {
 
     return access_token;
   }
+
+  static async findOrCreateGoogleUser(googleData: {
+    id: string;
+    email: string;
+    name: string;
+    picture?: string;
+  }) {
+    const collection = await this.collection();
+    
+    // First try to find by Google ID
+    let user = await collection.findOne({ googleId: googleData.id });
+    
+    // If not found by Google ID, try email
+    if (!user) {
+      user = await collection.findOne({ email: googleData.email });
+      
+      if (user) {
+        // Update existing user with Google ID
+        await collection.updateOne(
+          { _id: user._id },
+          { 
+            $set: { 
+              googleId: googleData.id,
+              profilePicture: googleData.picture || user.profilePicture,
+              updatedAt: new Date()
+            }
+          }
+        );
+        
+        // Get the updated user
+        user = await collection.findOne({ _id: user._id });
+      }
+    }
+    
+    return user;
+  }
   static async findById(id: string) {
     const collection = await this.collection();
     return await collection.findOne({ _id: new ObjectId(id) });

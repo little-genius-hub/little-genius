@@ -25,6 +25,8 @@ export interface User {
   username: string;
   email: string;
   password: string;
+  googleId?: string;
+  profilePicture?: string;
   children?: Child[];
   createdAt?: Date;
   updatedAt?: Date;
