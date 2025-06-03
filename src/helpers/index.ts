@@ -8,3 +8,6 @@ export function handleError(error: unknown): string {
   }
   return String(error);
 }
+
+// Export utilities
+export { generateUsername } from './utils';
