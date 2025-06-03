@@ -70,75 +70,96 @@ export default function GeneratedStoryPage() {
   const [activeSegment, setActiveSegment] = useState<number | null>(null);
 
   const storyId = params.id as string;
-  // Function to generate an appropriate image prompt based on story content
   const generateImagePrompt = (title: string, content: string): string => {
-    // Extract key elements from the content to create a more detailed prompt
-    // Look for significant nouns and settings in the text
     const extractRelevantTerms = (text: string): string[] => {
-      // Common storytelling elements to look for
-      const settings = ['forest', 'castle', 'mountain', 'sea', 'ocean', 'village', 'garden', 'house', 'cave', 'school'];
-      const characters = ['girl', 'boy', 'child', 'children', 'princess', 'prince', 'animal', 'dragon', 'fairy', 'wizard'];
-      const emotions = ['happy', 'sad', 'excited', 'scared', 'magical', 'mysterious', 'amazing', 'wonderful'];
-      
+      const settings = [
+        "forest",
+        "castle",
+        "mountain",
+        "sea",
+        "ocean",
+        "village",
+        "garden",
+        "house",
+        "cave",
+        "school",
+      ];
+      const characters = [
+        "girl",
+        "boy",
+        "child",
+        "children",
+        "princess",
+        "prince",
+        "animal",
+        "dragon",
+        "fairy",
+        "wizard",
+      ];
+      const emotions = [
+        "happy",
+        "sad",
+        "excited",
+        "scared",
+        "magical",
+        "mysterious",
+        "amazing",
+        "wonderful",
+      ];
+
       const textLower = text.toLowerCase();
       const foundTerms: string[] = [];
-      
-      // Find matching terms in content
-      [...settings, ...characters, ...emotions].forEach(term => {
+
+      [...settings, ...characters, ...emotions].forEach((term) => {
         if (textLower.includes(term) && !foundTerms.includes(term)) {
           foundTerms.push(term);
         }
       });
-      
-      // Add key terms from title
-      title.toLowerCase().split(' ').forEach(word => {
-        if (word.length > 3 && !foundTerms.includes(word)) {
-          foundTerms.push(word);
-        }
-      });
-      
+
+      title
+        .toLowerCase()
+        .split(" ")
+        .forEach((word) => {
+          if (word.length > 3 && !foundTerms.includes(word)) {
+            foundTerms.push(word);
+          }
+        });
+
       return foundTerms;
     };
-    
+
     const keyTerms = extractRelevantTerms(content);
-    
-    // Create a rich, descriptive prompt for better image generation
-    let styleModifiers = "colorful, detailed illustration, children's book style, magical, whimsical, fantasy art";
-    
-    // Combine elements for the final prompt
-    const promptBase = `${title}, ${keyTerms.join(', ')}, ${styleModifiers}`;
-    
-    // Clean and encode the prompt for URL
+
+    let styleModifiers =
+      "colorful, detailed illustration, children's book style, magical, whimsical, fantasy art";
+
+    const promptBase = `${title}, ${keyTerms.join(", ")}, ${styleModifiers}`;
+
     const cleanedPrompt = promptBase
       .replace(/[^\w\s,]/gi, " ")
       .replace(/\s+/g, " ")
       .trim()
-      .substring(0, 200); // Limit prompt length but allow longer for better results
-      
+      .substring(0, 200);
+
     return encodeURIComponent(cleanedPrompt);
   };
 
-  // Function to get the image URL for a story page
   const getStoryImageUrl = (title: string, content: string): string => {
     const prompt = generateImagePrompt(title, content);
     return `https://image.pollinations.ai/prompt/${prompt}%20with%20background%20woods?nologo=true`;
   };
-  
-  // Function to generate a caption for the image
+
   const generateImageCaption = (title: string): string => {
-    // Create a simple caption based on the title
-    return state.language === "en" 
-      ? `Illustration: ${title}` 
+    return state.language === "en"
+      ? `Illustration: ${title}`
       : `Ilustrasi: ${title}`;
   };
 
-  // Function to preload the next page image
   const preloadNextPageImage = () => {
     if (story && currentPage < story.pages[state.language].length - 1) {
       const nextPage = story.pages[state.language][currentPage + 1];
       const imageUrl = getStoryImageUrl(nextPage.title, nextPage.content);
-      
-      // Create and load the image in the browser
+
       if (typeof window !== "undefined") {
         const img = document.createElement("img");
         img.src = imageUrl;
@@ -304,12 +325,12 @@ export default function GeneratedStoryPage() {
   // Check speech support on mount
   useEffect(() => {
     const checkSpeechSupport = () => {
-      const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+      const supported =
+        typeof window !== "undefined" && "speechSynthesis" in window;
       setIsSpeechSupported(supported);
     };
     checkSpeechSupport();
 
-    // Cleanup any active narration when unmounting
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         speechService.stop();
@@ -317,19 +338,17 @@ export default function GeneratedStoryPage() {
     };
   }, []);
 
-  // Stop narration when changing pages
   useEffect(() => {
     if (isNarrating) {
       speechService.stop();
       setIsNarrating(false);
       setActiveSegment(null);
     }
-  }, [currentPage]);  // Function to handle the narration of the story
+  }, [currentPage]);
   const narrateStory = async () => {
     if (!story || !isSpeechSupported) return;
 
     if (isNarrating) {
-      // If already narrating, stop
       speechService.stop();
       setIsNarrating(false);
       setActiveSegment(null);
@@ -339,15 +358,9 @@ export default function GeneratedStoryPage() {
     setIsNarrating(true);
 
     try {
-      // First narrate title
       await narrateWithAnimation(currentStoryPage.title, true);
-      
-      // Highlight the entire content while narrating
       setActiveSegment(0);
-      
-      // Now narrate the entire page content at once instead of sentence by sentence
       await narrateWithAnimation(currentStoryPage.content, false);
-      
       setIsNarrating(false);
       setActiveSegment(null);
     } catch (error) {
@@ -357,11 +370,15 @@ export default function GeneratedStoryPage() {
     }
   };
   // Function to narrate text with animation
-  const narrateWithAnimation = (text: string, isTitle: boolean): Promise<void> => {
+  const narrateWithAnimation = (
+    text: string,
+    isTitle: boolean
+  ): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
         // Use child-friendly speech options
-        speechService.speak(text, state.language, { isChildFriendly: true })
+        speechService
+          .speak(text, state.language, { isChildFriendly: true })
           .then(() => {
             // Add a small delay between sentences for better comprehension
             if (!isTitle) {
@@ -462,39 +479,51 @@ export default function GeneratedStoryPage() {
   const highlightSpecialWords = (text: string) => {
     // Common magical/special words to highlight
     const specialWords = [
-      'magical', 'magic', 'sparkle', 'fairy', 'dragon', 'shadow', 'wizard',
-      'spell', 'potion', 'enchanted', 'ajaib', 'peri', 'sihir', 'naga',
-      'bayangan', 'pesona', 'terpesona', 'ramuan'
+      "magical",
+      "magic",
+      "sparkle",
+      "fairy",
+      "dragon",
+      "shadow",
+      "wizard",
+      "spell",
+      "potion",
+      "enchanted",
+      "ajaib",
+      "peri",
+      "sihir",
+      "naga",
+      "bayangan",
+      "pesona",
+      "terpesona",
+      "ramuan",
     ];
-    
+
     // Split the text by spaces but keep punctuation with words
     return text.split(/(\s+)/).map((word, idx) => {
       // Clean word for comparison (remove punctuation)
-      const cleanWord = word.toLowerCase().replace(/[^\w\s]/g, '');
-      
-      if (specialWords.some(special => cleanWord === special)) {
+      const cleanWord = word.toLowerCase().replace(/[^\w\s]/g, "");
+
+      if (specialWords.some((special) => cleanWord === special)) {
         return (
-          <span 
-            key={idx} 
+          <span
+            key={idx}
             className="text-purple-600 font-semibold animate-pulse px-0.5"
           >
             {word}
           </span>
         );
       }
-      
+
       // Check for character dialogue (text in quotes)
       if (word.includes('"') || word.includes("'") || word.includes("!")) {
         return (
-          <span 
-            key={idx} 
-            className="text-blue-600 italic"
-          >
+          <span key={idx} className="text-blue-600 italic">
             {word}
           </span>
         );
       }
-      
+
       return word;
     });
   };
@@ -607,8 +636,12 @@ export default function GeneratedStoryPage() {
           </CardHeader>
 
           <CardContent className="p-8">
-            {/* Story Image */}            <div className="mb-8 rounded-lg overflow-hidden shadow-lg group">
-              <AspectRatio ratio={16 / 9} className="bg-gray-100 overflow-hidden">
+            {/* Story Image */}{" "}
+            <div className="mb-8 rounded-lg overflow-hidden shadow-lg group">
+              <AspectRatio
+                ratio={16 / 9}
+                className="bg-gray-100 overflow-hidden"
+              >
                 {imageLoading && (
                   <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-100 rounded-lg">
                     <div className="flex flex-col items-center">
@@ -640,11 +673,18 @@ export default function GeneratedStoryPage() {
                 />
                 {!imageLoading && (
                   <a
-                    href={getStoryImageUrl(currentStoryPage.title, currentStoryPage.content)}
+                    href={getStoryImageUrl(
+                      currentStoryPage.title,
+                      currentStoryPage.content
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="absolute bottom-3 right-3 z-20 bg-white/80 hover:bg-white text-gray-700 p-2 rounded-full transition-all duration-300 shadow-md backdrop-blur-sm"
-                    title={state.language === "en" ? "View full image" : "Lihat gambar penuh"}
+                    title={
+                      state.language === "en"
+                        ? "View full image"
+                        : "Lihat gambar penuh"
+                    }
                   >
                     <ImageIcon className="w-5 h-5" />
                   </a>
@@ -654,46 +694,52 @@ export default function GeneratedStoryPage() {
                 {generateImageCaption(currentStoryPage.title)}
               </p>
             </div>
-
             {/* Story Text */}
             <div className="prose prose-lg max-w-none">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-purple-700 font-nunito mb-0">
                   {currentStoryPage.title}
-                </h3>                {isSpeechSupported && (
+                </h3>{" "}
+                {isSpeechSupported && (
                   <Button
                     onClick={narrateStory}
                     variant={isNarrating ? "outline" : "default"}
                     size="md"
                     className={`${
-                      isNarrating 
-                        ? 'bg-purple-100 border-purple-300 animate-pulse' 
-                        : 'bg-purple-500 hover:bg-purple-600 text-white shadow-md hover:shadow-lg'
+                      isNarrating
+                        ? "bg-purple-100 border-purple-300 animate-pulse"
+                        : "bg-purple-500 hover:bg-purple-600 text-white shadow-md hover:shadow-lg"
                     } transition-all duration-300 rounded-full px-4`}
                   >
                     {isNarrating ? (
                       <>
                         <Pause className="h-5 w-5 mr-2" />
-                        {state.language === "en" ? "Pause Reading" : "Jeda Bacaan"}
+                        {state.language === "en"
+                          ? "Pause Reading"
+                          : "Jeda Bacaan"}
                       </>
                     ) : (
                       <>
                         <Volume2 className="h-5 w-5 mr-2" />
-                        {state.language === "en" ? "Read Story Aloud" : "Bacakan Cerita"}
+                        {state.language === "en"
+                          ? "Read Story Aloud"
+                          : "Bacakan Cerita"}
                       </>
                     )}
                   </Button>
                 )}
-              </div>                <div className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
-                  <div className={`transition-all duration-500 ${
+              </div>{" "}
+              <div className="text-gray-700 leading-relaxed font-nunito text-lg whitespace-pre-line">
+                <div
+                  className={`transition-all duration-500 ${
                     activeSegment === 0
-                      ? 'bg-yellow-100 text-gray-800 px-3 py-2 rounded-lg shadow-sm border-l-4 border-yellow-300'
-                      : ''
-                  }`}>
-                    {highlightSpecialWords(currentStoryPage.content)}
-                  </div>
+                      ? "bg-yellow-100 text-gray-800 px-3 py-2 rounded-lg shadow-sm border-l-4 border-yellow-300"
+                      : ""
+                  }`}
+                >
+                  {highlightSpecialWords(currentStoryPage.content)}
+                </div>
               </div>
-              
               {!isSpeechSupported && (
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
@@ -704,7 +750,6 @@ export default function GeneratedStoryPage() {
                 </div>
               )}
             </div>
-
             {/* Navigation */}
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
               <Button
@@ -745,7 +790,6 @@ export default function GeneratedStoryPage() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-
             {/* Story Complete */}
             {currentPage === totalPages - 1 && (
               <div className="mt-8 p-6 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-xl text-center">
