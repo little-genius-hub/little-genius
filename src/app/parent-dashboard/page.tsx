@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useApp } from "@/store/app-context";
+import { LoadingScreen } from "@/components/common/loading-screen";
 
 interface Child {
   id: string;
@@ -131,59 +132,6 @@ const formatTimePlayed = (totalMinutes: number) => {
   return `${minutes}m`;
 };
 
-// function calculateSkillProgress(progress?: Child["progress"]): ProgressData[] {
-//   if (!progress) return [];
-
-//   const numberProgress = progress.numbers.completedLevels.reduce(
-//     (acc, level) => ({
-//       score: acc.score + level.score,
-//       time: acc.time + level.timeSpent / 60, // Convert seconds to minutes
-//     }),
-//     { score: 0, time: 0 }
-//   );
-
-//   const letterProgress = progress.letters.completedLevels.reduce(
-//     (acc, level) => ({
-//       score: acc.score + level.score,
-//       time: acc.time + level.timeSpent / 60,
-//     }),
-//     { score: 0, time: 0 }
-//   );
-
-//   return [
-//     {
-//       skill: "Numbers",
-//       progress:
-//         Math.min(
-//           100,
-//           (numberProgress.score /
-//             (progress.numbers.completedLevels.length * 100)) *
-//             100
-//         ) || 0,
-//       level: getLevelLabel(progress.numbers.level),
-//       timeSpent: numberProgress.time,
-//     },
-//     {
-//       skill: "Letters",
-//       progress:
-//         Math.min(
-//           100,
-//           (letterProgress.score /
-//             (progress.letters.completedLevels.length * 100)) *
-//             100
-//         ) || 0,
-//       level: getLevelLabel(progress.letters.level),
-//       timeSpent: letterProgress.time,
-//     },
-//   ];
-// }
-
-function getLevelLabel(level: number): string {
-  if (level <= 2) return "Beginner";
-  if (level <= 4) return "Intermediate";
-  return "Advanced";
-}
-
 export default function ParentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +142,7 @@ export default function ParentDashboard() {
   );
   const { state } = useApp();
   const [progress, setProgress] = useState<ProgressData[]>([]);
+  const [timeSpent, setTimeSpent] = useState<number>(0);
 
   useEffect(() => {
     // console.log(selectedChild, "<<<<< selected child")
@@ -251,7 +200,8 @@ export default function ParentDashboard() {
         throw new Error("Failed to fetch dashboard data");
       }
       const progressData = await responseProgress.json();
-      setProgress(progressData);
+      setProgress(progressData[0]);
+      setTimeSpent(progressData[1]);
     } catch (err) {
       console.error("Error fetching dashboard data: ", err);
     }
@@ -282,15 +232,14 @@ export default function ParentDashboard() {
     const child = children.find((c) => c.id === value);
     if (child) {
       setSelectedChild(child);
+      await refreshProgress(child.id);
       await fetchDashboardData(child.id);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading...
-      </div>
+      <LoadingScreen/>
     );
   }
 
@@ -318,11 +267,6 @@ export default function ParentDashboard() {
         }
         return acc;
       }, 0)
-    : 0;
-
-  const gamesCompleted = selectedChild.progress
-    ? selectedChild.progress.numbers.completedLevels.length +
-      selectedChild.progress.letters.completedLevels.length
     : 0;
 
   const currentLevel = selectedChild.progress
@@ -431,15 +375,15 @@ export default function ParentDashboard() {
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Play Time
+                Play Time
               </CardTitle>
               <Clock className="h-4 w-4" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatTimePlayed(totalPlayTime)}
+                {formatTimePlayed(Math.floor(timeSpent / 60))}
               </div>
-              <p className="text-xs opacity-80">This week</p>
+              <p className="text-xs opacity-80">Total Play Time</p>
             </CardContent>
           </Card>
 
@@ -451,7 +395,7 @@ export default function ParentDashboard() {
               <Trophy className="h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{gamesCompleted}</div>
+              <div className="text-2xl font-bold">{progress.length}</div>
               <p className="text-xs opacity-80">Total games completed</p>
             </CardContent>
           </Card>
@@ -520,38 +464,44 @@ export default function ParentDashboard() {
                           {dashboardData.analysis.map((skill) => (
                             <div
                               key={skill.subject}
-                              className="p-3 rounded-lg border flex flex-col md:flex-row md:items-center md:justify-between bg-purple-50"
+                              className="p-3 rounded-lg border flex flex-col bg-purple-50"
                             >
+                              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                               <div>
                                 <span className="font-medium text-gray-800">
-                                  {skill.subject}
+                                {skill.subject}
                                 </span>
                                 <span
-                                  className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${
-                                    skill.status === "Great"
-                                      ? "bg-green-100 text-green-700"
-                                      : skill.status === "Improving"
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-red-100 text-red-700"
-                                  }`}
+                                className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${
+                                  skill.status === "Great"
+                                  ? "bg-green-100 text-green-700"
+                                  : skill.status === "Improving"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-red-100 text-red-700"
+                                }`}
                                 >
-                                  {skill.status}
+                                {skill.status}
                                 </span>
                               </div>
-                              {skill.recommendedGames &&
-                                skill.recommendedGames.length > 0 && (
-                                  <div className="mt-2 md:mt-0 flex flex-wrap gap-2">
-                                    {skill.recommendedGames.map((game) => (
-                                      <Badge
-                                        key={game}
-                                        variant="outline"
-                                        className="bg-white border-purple-300 text-purple-700"
-                                      >
-                                        {game}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
+                              </div>
+                              {skill.recommendedGames && skill.recommendedGames.length > 0 && (
+                              <div className="mt-2">
+                                <div className="text-sm font-semibold text-purple-700 mb-1">
+                                Recommended Game{skill.recommendedGames.length > 1 ? "s" : ""}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                {skill.recommendedGames.map((game) => (
+                                  <Badge
+                                  key={game}
+                                  variant="outline"
+                                  className="bg-white border-purple-300 text-purple-700"
+                                  >
+                                  {game}
+                                  </Badge>
+                                ))}
+                                </div>
+                              </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -572,7 +522,7 @@ export default function ParentDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Progress Chart Per Game  */}
+              {/* Progress Chart Per Game */}
               <Card>
                 <CardHeader>
                   <CardTitle>Games played</CardTitle>
@@ -581,7 +531,7 @@ export default function ParentDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {progress ? (
+                  {progress[0] ? (
                     <div className="space-y-6">
                       {progress.map((item) => (
                         <div key={item._id} className="space-y-1">

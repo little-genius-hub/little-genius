@@ -82,6 +82,11 @@ export async function GET(req: Request) {
   ];
 
   const progressData = await progressColl.aggregate(agg).toArray();
+  let timeSpent = 0
+  for(let i = 0; i < progressData.length; i++) {
+    let progress = progressData[i]
+    timeSpent += progress.timeSpent
+  }
 
-  return NextResponse.json(progressData);
+  return NextResponse.json([progressData, timeSpent]);
 }
