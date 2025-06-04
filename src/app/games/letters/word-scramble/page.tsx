@@ -34,74 +34,8 @@ interface GameState {
   showHint: boolean;
 }
 
-// Word lists for different difficulty levels
-const WORD_LISTS = {
-  en: {
-    1: ["cat", "dog", "sun", "car", "hat", "bat", "run", "fun", "cup", "pen"],
-    2: [
-      "house",
-      "water",
-      "happy",
-      "green",
-      "chair",
-      "table",
-      "apple",
-      "bread",
-      "smile",
-      "dance",
-    ],
-    3: [
-      "elephant",
-      "computer",
-      "beautiful",
-      "adventure",
-      "chocolate",
-      "butterfly",
-      "telephone",
-      "wonderful",
-      "basketball",
-      "playground",
-    ],
-  },
-  id: {
-    1: [
-      "kucing",
-      "anjing",
-      "matahari",
-      "mobil",
-      "topi",
-      "kelelawar",
-      "lari",
-      "senang",
-      "cangkir",
-      "pena",
-    ],
-    2: [
-      "rumah",
-      "air",
-      "bahagia",
-      "hijau",
-      "kursi",
-      "meja",
-      "apel",
-      "roti",
-      "senyum",
-      "menari",
-    ],
-    3: [
-      "gajah",
-      "komputer",
-      "indah",
-      "petualangan",
-      "cokelat",
-      "kupu-kupu",
-      "telepon",
-      "menakjubkan",
-      "bola basket",
-      "taman bermain",
-    ],
-  },
-};
+const INITIAL_LIVES = 3;
+const PROBLEMS_PER_LEVEL = 10;
 
 export default function WordScramblePage() {
   const { state, dispatch } = useApp();
@@ -111,7 +45,7 @@ export default function WordScramblePage() {
   const [gameState, setGameState] = useState<GameState>({
     currentProblem: 0,
     score: 0,
-    lives: 3,
+    lives: INITIAL_LIVES,
     problems: [],
     userAnswer: "",
     showResult: false,
@@ -122,11 +56,12 @@ export default function WordScramblePage() {
   });
 
   const [startTime, setStartTime] = useState<number | null>(null);
-
-  // Set startTime setiap subLevel berubah (mulai ulang game)
-  useEffect(() => {
-    setStartTime(Date.now());
-  }, [gameState.subLevel]);
+  const [loading, setLoading] = useState(false);
+  const [progressData, setProgressData] = useState<any[]>([]);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
+  const [readyToFetchProblems, setReadyToFetchProblems] = useState(false);
+  const [hasFetchedProblems, setHasFetchedProblems] = useState(false);
+  const [problemsData, setProblemsData] = useState<WordProblem[]>([]);
 
   // Scramble a word
   const scrambleWord = (word: string): string => {
@@ -135,53 +70,196 @@ export default function WordScramblePage() {
       const j = Math.floor(Math.random() * (i + 1));
       [letters[i], letters[j]] = [letters[j], letters[i]];
     }
-    // Make sure the scrambled word is different from the original
     const scrambled = letters.join("");
     return scrambled === word ? scrambleWord(word) : scrambled;
   };
 
-  // Generate word problems based on sub-level
-  const generateProblems = (subLevel: number): WordProblem[] => {
-    const problems: WordProblem[] = [];
-    const wordList =
-      WORD_LISTS[state.language][subLevel as keyof typeof WORD_LISTS.en] ||
-      WORD_LISTS[state.language][1];
+  // Fetch progress dari backend
+  async function fetchProgressData(childId: string) {
+    setIsLoadingProgress(true);
+    try {
+      const res = await fetch(
+        `/api/games-letter/word-scramble/progress?childId=${childId}`
+      );
+      const data = await res.json();
+      setProgressData(data.progress || []);
+    } catch (err) {
+      setProgressData([]);
+    }
+    setIsLoadingProgress(false);
+  }
 
-    // Shuffle and take 10 words
-    const shuffledWords = [...wordList]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 10);
+  // Fetch progress saat mount/child berubah
+  useEffect(() => {
+    if (state.currentChild?.id) {
+      fetchProgressData(state.currentChild.id);
+    }
+  }, [state.currentChild?.id]);
 
-    shuffledWords.forEach((word, index) => {
-      problems.push({
-        id: `scramble_${index}`,
-        word: word.toLowerCase(),
-        scrambledWord: scrambleWord(word.toLowerCase()),
-        pronunciation: word.toLowerCase(),
-        meaning: word.toLowerCase(), // In a real app, this would be the translation/meaning
-        level: 1,
-        subLevel,
-        language: state.language,
-      });
-    });
+  // Reset trigger setiap subLevel berubah
+  useEffect(() => {
+    setReadyToFetchProblems(false);
+  }, [gameState.subLevel]);
 
-    return problems;
+  // Set subLevel setelah progressData didapat
+  useEffect(() => {
+    if (!progressData || progressData.length === 0) {
+      setGameState((prev) => ({ ...prev, subLevel: 1 }));
+      return;
+    }
+    const level1Score = progressData
+      .filter((item: any) => item.level === 1)
+      .map((item: any) => item.score);
+    const isLevel2Unlocked =
+      level1Score.length > 0 && Math.max(...level1Score) >= 80;
+    const level2Score = progressData
+      .filter((item: any) => item.level === 2)
+      .map((item: any) => item.score);
+    const isLevel3Unlocked =
+      level2Score.length > 0 && Math.max(...level2Score) >= 80;
+
+    let highest = 1;
+    if (isLevel3Unlocked) highest = 3;
+    else if (isLevel2Unlocked) highest = 2;
+
+    if (gameState.subLevel !== highest) {
+      setGameState((prev) => ({ ...prev, subLevel: highest }));
+    }
+    // Jangan setReadyToFetchProblems di sini!
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressData]);
+
+  // Trigger fetch hanya setelah subLevel sudah benar
+  useEffect(() => {
+    if (!progressData || progressData.length === 0) {
+      setReadyToFetchProblems(true);
+      return;
+    }
+    const level1Score = progressData
+      .filter((item: any) => item.level === 1)
+      .map((item: any) => item.score);
+    const isLevel2Unlocked =
+      level1Score.length > 0 && Math.max(...level1Score) >= 80;
+    const level2Score = progressData
+      .filter((item: any) => item.level === 2)
+      .map((item: any) => item.score);
+    const isLevel3Unlocked =
+      level2Score.length > 0 && Math.max(...level2Score) >= 80;
+
+    let highest = 1;
+    if (isLevel3Unlocked) highest = 3;
+    else if (isLevel2Unlocked) highest = 2;
+
+    if (gameState.subLevel === highest) {
+      setReadyToFetchProblems(true);
+    }
+  }, [gameState.subLevel, progressData]);
+
+  // Fungsi fetchProblems
+  const fetchProblems = async () => {
+    setLoading(true);
+    setHasFetchedProblems(false);
+    try {
+      const res = await fetch(
+        `/api/games-letter/word-scramble?language=${state.language}&level=${gameState.subLevel}`
+      );
+      const data = await res.json();
+      const problems: WordProblem[] = (data.questions || []).map(
+        (q: any, idx: number) => ({
+          id: `scramble_${idx}`,
+          word: q.word.toLowerCase(),
+          scrambledWord: scrambleWord(q.word.toLowerCase()),
+          pronunciation: q.word.toLowerCase(),
+          meaning: q.meaning || q.word.toLowerCase(),
+          level: q.level,
+          subLevel: q.level,
+          language: q.language,
+        })
+      );
+      setProblemsData(problems);
+    } catch {
+      setProblemsData([]);
+    } finally {
+      setLoading(false);
+      setHasFetchedProblems(true);
+      setStartTime(Date.now());
+    }
   };
 
-  // Initialize game
+  // Fetch soal listen ke subLevel
   useEffect(() => {
-    const problems = generateProblems(gameState.subLevel);
-    setGameState((prev) => ({ ...prev, problems }));
-  }, [gameState.subLevel, state.language]);
+    if (!readyToFetchProblems) return;
+    fetchProblems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyToFetchProblems, state.language, gameState.subLevel]);
+
+  // Konsumsi data dari problemsData, update gameState.problems jika data berubah
+  useEffect(() => {
+    if (!hasFetchedProblems) return;
+    if (problemsData.length === 0) return;
+    setGameState((prev) => ({
+      ...prev,
+      problems: problemsData,
+      currentProblem: 0,
+      score: 0,
+      lives: INITIAL_LIVES,
+      userAnswer: "",
+      showResult: false,
+      isCorrect: false,
+      gameComplete: false,
+      showHint: false,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [problemsData, hasFetchedProblems]);
 
   useEffect(() => {
     if (!state.currentChild) {
-      router.push("/");
+      router.push("/games/letters/word-scramble");
     }
   }, [state.currentChild, router]);
 
-  if (!state.currentChild) {
-    return null;
+  // Function untuk cek skor tertinggi per level
+  function getHighestScoreForLevel(level: number): number {
+    if (!progressData || progressData.length === 0) return 0;
+    const levelScores = progressData
+      .filter((item: any) => item.level === level)
+      .map((item: any) => item.score);
+    return levelScores.length > 0 ? Math.max(...levelScores) : 0;
+  }
+
+  // Handle loading progress (sebelum soal di-fetch)
+  if (isLoadingProgress) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-lg font-semibold">
+          {t("loading") || "Loading..."}
+        </span>
+      </div>
+    );
+  }
+
+  // Handle loading soal
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-lg font-semibold">
+          {t("loading") || "Loading..."}
+        </span>
+      </div>
+    );
+  }
+
+  // Handle jika soal kosong
+  if (!loading && hasFetchedProblems && gameState.problems.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-lg font-semibold text-red-500">
+          {state.language === "en"
+            ? "No questions available for this level."
+            : "Tidak ada soal untuk level ini."}
+        </span>
+      </div>
+    );
   }
 
   const handleAnswerSubmit = () => {
@@ -201,7 +279,7 @@ export default function WordScramblePage() {
     setTimeout(() => {
       if (
         gameState.currentProblem + 1 >= gameState.problems.length ||
-        (!isCorrect && gameState.lives - 1 <= 0) // lives habis setelah salah
+        (!isCorrect && gameState.lives - 1 <= 0)
       ) {
         setGameState((prev) => ({ ...prev, gameComplete: true }));
         saveProgress();
@@ -262,35 +340,35 @@ export default function WordScramblePage() {
   };
 
   const restartGame = () => {
-    const problems = generateProblems(gameState.subLevel);
-    setGameState({
+    setGameState((prev) => ({
+      ...prev,
       currentProblem: 0,
       score: 0,
-      lives: 3,
-      problems,
+      lives: INITIAL_LIVES,
       userAnswer: "",
       showResult: false,
       isCorrect: false,
       gameComplete: false,
-      subLevel: gameState.subLevel,
       showHint: false,
-    });
+    }));
+    setStartTime(Date.now());
+    window.location.reload();
   };
 
   const changeSubLevel = (newSubLevel: number) => {
-    const problems = generateProblems(newSubLevel);
-    setGameState({
+    setGameState((prev) => ({
+      ...prev,
       currentProblem: 0,
       score: 0,
-      lives: 3,
-      problems,
+      lives: INITIAL_LIVES,
       userAnswer: "",
       showResult: false,
       isCorrect: false,
       gameComplete: false,
-      subLevel: newSubLevel,
       showHint: false,
-    });
+      subLevel: newSubLevel,
+    }));
+    setStartTime(Date.now());
   };
 
   const toggleHint = () => {
@@ -309,7 +387,7 @@ export default function WordScramblePage() {
   };
 
   const currentProblem = gameState.problems[gameState.currentProblem];
-  const progress = ((gameState.currentProblem + 1) / 10) * 100;
+  const progress = ((gameState.currentProblem + 1) / PROBLEMS_PER_LEVEL) * 100;
 
   if (gameState.gameComplete) {
     return (
@@ -318,12 +396,10 @@ export default function WordScramblePage() {
           <div className="relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-violet-200 rounded-full opacity-30 blur-2xl"></div>
             <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-200 rounded-full opacity-30 blur-2xl"></div>
-
             <CardContent className="p-8 text-center space-y-8 relative z-10">
               <div className="w-24 h-24 bg-gradient-to-tr from-purple-400 to-violet-500 shadow-lg shadow-purple-400/30 rounded-full flex items-center justify-center mx-auto animate-float">
                 <Trophy className="h-12 w-12 text-white" />
               </div>
-
               <div>
                 <h2 className="text-3xl font-bold text-indigo-800 mb-2 font-nunito">
                   {state.language === "en" ? "Congratulations!" : "Selamat!"}
@@ -334,7 +410,6 @@ export default function WordScramblePage() {
                     : "Anda telah menyelesaikan permainan mengacak kata!"}
                 </p>
               </div>
-
               <div className="grid grid-cols-2 gap-6">
                 <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-4 rounded-xl shadow-inner">
                   <div className="text-3xl font-bold text-purple-500 flex items-center justify-center gap-2">
@@ -356,7 +431,6 @@ export default function WordScramblePage() {
                   </p>
                 </div>
               </div>
-
               <div className="space-y-3 pt-2">
                 <Button
                   onClick={restartGame}
@@ -396,7 +470,6 @@ export default function WordScramblePage() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               {t("back")}
             </Button>
-
             <div className="text-center">
               <h1 className="text-xl font-bold text-white text-glow-white font-nunito">
                 {t("wordScramble")}
@@ -409,7 +482,6 @@ export default function WordScramblePage() {
                 {gameState.subLevel}
               </Badge>
             </div>
-
             <div className="flex items-center gap-5 text-white">
               <div className="flex items-center gap-1 bg-white/10 py-1 px-3 rounded-full">
                 <Star className="h-5 w-5 text-yellow-300 animate-pulse-gentle" />
@@ -442,7 +514,7 @@ export default function WordScramblePage() {
                 {state.language === "en" ? "Progress" : "Kemajuan"}
               </span>
               <span className="bg-purple-50 px-2 py-0.5 rounded-full text-purple-700 font-medium">
-                {gameState.currentProblem + 1}/10
+                {gameState.currentProblem + 1}/{PROBLEMS_PER_LEVEL}
               </span>
             </div>
             <Progress value={progress} className="h-3 bg-violet-100" />
@@ -453,26 +525,34 @@ export default function WordScramblePage() {
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl overflow-hidden">
           <CardContent className="p-5">
             <div className="flex gap-3 justify-center">
-              {[1, 2, 3].map((level) => (
-                <Button
-                  key={level}
-                  variant={gameState.subLevel === level ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => changeSubLevel(level)}
-                  className={`min-w-[90px] py-5 transition-all duration-300 ${
-                    gameState.subLevel === level
-                      ? "bg-gradient-to-r from-purple-500 to-indigo-600 shadow-md shadow-purple-500/30"
-                      : "border-purple-200 text-purple-700 hover:border-purple-300 hover:bg-purple-50"
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="text-lg font-medium">{level}</div>
-                    <div className="text-xs opacity-80">
-                      {state.language === "en" ? "Level" : "Level"}
+              {[1, 2, 3].map((level) => {
+                let disabled = false;
+                if (level === 2) disabled = getHighestScoreForLevel(1) < 80;
+                if (level === 3) disabled = getHighestScoreForLevel(2) < 80;
+                return (
+                  <Button
+                    key={level}
+                    disabled={disabled}
+                    variant={
+                      gameState.subLevel === level ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => changeSubLevel(level)}
+                    className={`min-w-[90px] py-5 transition-all duration-300 ${
+                      gameState.subLevel === level
+                        ? "bg-gradient-to-r from-purple-500 to-indigo-600 shadow-md shadow-purple-500/30"
+                        : "border-purple-200 text-purple-700 hover:border-purple-300 hover:bg-purple-50"
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg font-medium">{level}</div>
+                      <div className="text-xs opacity-80">
+                        {state.language === "en" ? "Level" : "Level"}
+                      </div>
                     </div>
-                  </div>
-                </Button>
-              ))}
+                  </Button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -512,7 +592,6 @@ export default function WordScramblePage() {
                 </Button>
               </div>
             </div>
-
             <CardContent className="space-y-6 p-5">
               {gameState.showHint && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
@@ -528,7 +607,6 @@ export default function WordScramblePage() {
                   </p>
                 </div>
               )}
-
               {!gameState.showResult ? (
                 <>
                   <div className="text-center">
