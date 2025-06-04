@@ -290,6 +290,24 @@ export default function MultiplicationGamePage() {
     );
   }, [progressData]);
 
+  // Add animation styles
+  const animationStyles = `
+  @keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-bounce-slow {
+    animation: bounce-slow 3s infinite;
+  }
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+`;
+
   if (gameState.gameComplete) {
     const level = gameState.subLevel;
     const timeSpent =
@@ -303,8 +321,17 @@ export default function MultiplicationGamePage() {
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-green-200 rounded-full opacity-30 blur-2xl"></div>
             <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-200 rounded-full opacity-30 blur-2xl"></div>
             <CardContent className="p-8 text-center space-y-8 relative z-10">
-              <div className="w-24 h-24 bg-gradient-to-tr from-purple-400 to-green-400 shadow-lg shadow-purple-400/30 rounded-full flex items-center justify-center mx-auto animate-float">
-                <Trophy className="h-12 w-12 text-white" />
+              <div className="w-24 h-24 bg-gradient-to-tr from-purple-400 to-green-400 shadow-lg shadow-purple-400/30 rounded-full flex items-center justify-center mx-auto animate-float relative">
+                <Trophy className="h-12 w-12 text-white animate-pulse" />
+                <div className="absolute -top-4 -right-4 animate-bounce-slow">
+                  🎉
+                </div>
+                <div
+                  className="absolute -bottom-4 -left-4 animate-bounce-slow"
+                  style={{ animationDelay: "0.5s" }}
+                >
+                  🎊
+                </div>
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-green-800 mb-2 font-nunito">
@@ -377,8 +404,20 @@ export default function MultiplicationGamePage() {
 
   return (
     <div className="min-h-screen bg-gradient-radial from-purple-400 via-blue-400 to-green-400 animate-gradient-slow">
+      <style jsx global>
+        {animationStyles}
+      </style>
       {/* Header */}
-      <div className="bg-white/10 backdrop-blur-md border-b border-white/20 shadow-lg">
+      <div className="bg-gradient-to-r from-purple-500/80 to-green-500/80 backdrop-blur-md border-b border-white/20 shadow-lg relative overflow-hidden">
+        <div className="absolute -top-6 left-4 animate-bounce-slow opacity-70">
+          <div className="text-3xl">✨</div>
+        </div>
+        <div className="absolute top-2 right-8 animate-spin-slow opacity-70">
+          <div className="text-3xl">🔢</div>
+        </div>
+        <div className="absolute -bottom-3 left-1/4 animate-pulse-gentle opacity-70">
+          <div className="text-2xl">✖️</div>
+        </div>
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Button
@@ -426,6 +465,16 @@ export default function MultiplicationGamePage() {
 
       {/* Game Content */}
       <div className="max-w-2xl mx-auto p-4 space-y-6">
+        {/* Floating Math Symbols */}
+        <div className="absolute left-4 top-1/4 animate-bounce-slow opacity-70 hidden md:block">
+          <div className="text-4xl">➗</div>
+        </div>
+        <div className="absolute right-8 top-1/3 animate-pulse-gentle opacity-70 hidden md:block">
+          <div className="text-4xl">➕</div>
+        </div>
+        <div className="absolute left-16 bottom-1/4 animate-spin-slow opacity-70 hidden md:block">
+          <div className="text-4xl">🧮</div>
+        </div>
         {/* Progress */}
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-xl rounded-xl overflow-hidden">
           <CardContent className="p-4">
