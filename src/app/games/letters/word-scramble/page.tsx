@@ -397,8 +397,14 @@ export default function WordScramblePage() {
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-violet-200 rounded-full opacity-30 blur-2xl"></div>
             <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-200 rounded-full opacity-30 blur-2xl"></div>
             <CardContent className="p-8 text-center space-y-8 relative z-10">
-              <div className="w-24 h-24 bg-gradient-to-tr from-purple-400 to-violet-500 shadow-lg shadow-purple-400/30 rounded-full flex items-center justify-center mx-auto animate-float">
+              <div className="w-24 h-24 bg-gradient-to-tr from-purple-400 to-violet-500 shadow-lg shadow-purple-400/30 rounded-full flex items-center justify-center mx-auto animate-float relative">
                 <Trophy className="h-12 w-12 text-white" />
+                <div className="absolute -top-2 -right-2 text-2xl animate-bounce">
+                  🎉
+                </div>
+                <div className="absolute -bottom-1 -left-2 text-xl animate-pulse">
+                  🌟
+                </div>
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-indigo-800 mb-2 font-nunito">
@@ -458,8 +464,17 @@ export default function WordScramblePage() {
   return (
     <div className="min-h-screen bg-gradient-radial from-violet-400 via-purple-500 to-indigo-600 animate-gradient-slow">
       {/* Header */}
-      <div className="bg-white/10 backdrop-blur-md border-b border-white/20 shadow-lg">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="bg-gradient-to-r from-purple-600/90 via-violet-500/90 to-indigo-600/90 backdrop-blur-md border-b border-white/30 shadow-xl relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-2 left-10 w-4 h-4 bg-yellow-300 rounded-full animate-bounce opacity-70"></div>
+          <div className="absolute top-4 right-20 w-3 h-3 bg-pink-300 rounded-full animate-pulse opacity-60"></div>
+          <div className="absolute bottom-2 left-1/4 w-2 h-2 bg-cyan-300 rounded-full animate-ping opacity-50"></div>
+          <div className="absolute top-1 right-1/3 text-2xl animate-bounce">⭐</div>
+          <div className="absolute bottom-1 right-10 text-xl animate-pulse">🎯</div>
+          <div className="absolute top-3 left-1/3 text-lg animate-bounce delay-300">✨</div>
+        </div>
+        <div className="max-w-4xl mx-auto px-4 py-4 relative z-10">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
@@ -501,6 +516,25 @@ export default function WordScramblePage() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Floating decorative elements */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-20 left-10 text-3xl animate-float opacity-30">
+          🌈
+        </div>
+        <div className="absolute top-40 right-20 text-2xl animate-bounce opacity-25 delay-1000">
+          🎨
+        </div>
+        <div className="absolute bottom-40 left-20 text-2xl animate-pulse opacity-20">
+          📚
+        </div>
+        <div className="absolute bottom-60 right-10 text-xl animate-bounce opacity-30 delay-700">
+          🚀
+        </div>
+        <div className="absolute top-60 left-1/2 text-lg animate-float opacity-25 delay-500">
+          🎪
         </div>
       </div>
 
@@ -565,8 +599,17 @@ export default function WordScramblePage() {
                 <CardTitle className="text-lg text-white/90 mb-2 font-nunito">
                   {t("unscrambleWord")}
                 </CardTitle>
-                <div className="text-4xl font-bold text-white font-nunito tracking-widest mb-4 text-glow-white bg-white/10 py-3 px-6 rounded-lg mx-auto inline-block">
+                <div className="text-4xl font-bold text-white font-nunito tracking-widest mb-4 text-glow-white bg-white/10 py-3 px-6 rounded-lg mx-auto inline-block relative">
                   {currentProblem.scrambledWord.toUpperCase()}
+                  <div className="absolute -top-3 -left-3 text-2xl animate-bounce">
+                    🔤
+                  </div>
+                  <div className="absolute -top-2 -right-2 text-xl animate-pulse">
+                    💫
+                  </div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-lg animate-bounce delay-500">
+                    🎲
+                  </div>
                 </div>
               </CardHeader>
             </div>
@@ -645,20 +688,35 @@ export default function WordScramblePage() {
               ) : (
                 <div className="text-center space-y-4">
                   <div
-                    className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto ${
+                    className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto relative ${
                       gameState.isCorrect ? "bg-green-100" : "bg-red-100"
                     }`}
                   >
                     {gameState.isCorrect ? (
-                      <CheckCircle className="h-10 w-10 text-green-600" />
+                      <>
+                        <CheckCircle className="h-10 w-10 text-green-600" />
+                        <div className="absolute -top-2 -right-1 text-2xl animate-bounce">
+                          🎊
+                        </div>
+                        <div className="absolute -bottom-1 -left-1 text-xl animate-pulse">
+                          🎈
+                        </div>
+                      </>
                     ) : (
-                      <XCircle className="h-10 w-10 text-red-600" />
+                      <>
+                        <XCircle className="h-10 w-10 text-red-600" />
+                        <div className="absolute -top-1 -right-1 text-lg animate-pulse">
+                          💪
+                        </div>
+                      </>
                     )}
                   </div>
                   <div>
                     <h3
                       className={`text-2xl font-bold ${
-                        gameState.isCorrect ? "text-green-600" : "text-red-600"
+                        gameState.isCorrect
+                          ? "text-green-600"
+                          : "text-red-600"
                       }`}
                     >
                       {gameState.isCorrect ? t("correct") : t("tryAgain")}
@@ -678,6 +736,64 @@ export default function WordScramblePage() {
           </Card>
         )}
       </div>
+
+      {/* Add these animation classes to your global CSS or use them inline */}
+      <style jsx>{`
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+        @keyframes beat {
+          0%,
+          100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.1);
+          }
+        }
+        @keyframes pulse-gentle {
+          0%,
+          100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.7;
+          }
+        }
+        @keyframes gradient-slow {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        .animate-beat {
+          animation: beat 1s ease-in-out infinite;
+        }
+        .animate-pulse-gentle {
+          animation: pulse-gentle 2s ease-in-out infinite;
+        }
+        .animate-gradient-slow {
+          background-size: 400% 400%;
+          animation: gradient-slow 15s ease infinite;
+        }
+        .text-glow-white {
+          text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        .bg-gradient-radial {
+          background: radial-gradient(circle, var(--tw-gradient-stops));
+        }
+      `}</style>
     </div>
   );
 }
