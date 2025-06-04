@@ -10,22 +10,21 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#ffffff",
     theme_color: "#4F46E5",
     orientation: "portrait",
-    categories: ["education", "games", "kids"],
-    icons: [
+    categories: ["education", "games", "kids"],    icons: [
       {
-        src: "/placeholder.svg?height=192&width=192",
+        src: "/placeholder-logo.png",
         sizes: "192x192",
-        type: "image/svg+xml",
+        type: "image/png",
       },
       {
-        src: "/placeholder.svg?height=512&width=512",
+        src: "/placeholder-logo.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
       },
       {
-        src: "/placeholder.svg?height=192&width=192",
+        src: "/placeholder-logo.png",
         sizes: "192x192",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "maskable",
       },
     ],
