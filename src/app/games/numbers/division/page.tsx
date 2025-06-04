@@ -19,6 +19,18 @@ import { useApp } from "@/store/app-context";
 import { useTranslation } from "@/lib/i18n";
 import type { MathProblem } from "@/types";
 
+// Add these animations
+const floatingStars = Array(5)
+  .fill(0)
+  .map((_, i) => ({
+    id: `star-${i}`,
+    top: `${Math.random() * 80 + 10}%`,
+    left: `${Math.random() * 80 + 10}%`,
+    size: `${Math.random() * 1.5 + 0.5}rem`,
+    delay: `${Math.random() * 5}s`,
+    duration: `${Math.random() * 5 + 5}s`,
+  }));
+
 interface GameState {
   currentProblem: number;
   score: number;
@@ -34,6 +46,26 @@ interface GameState {
 
 const INITIAL_LIVES = 3;
 const PROBLEMS_PER_LEVEL = 10;
+
+const FloatingStars = () => (
+  <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    {floatingStars.map((star) => (
+      <div
+        key={star.id}
+        className="absolute animate-float-random text-yellow-300"
+        style={{
+          top: star.top,
+          left: star.left,
+          fontSize: star.size,
+          animationDelay: star.delay,
+          animationDuration: star.duration,
+        }}
+      >
+        <Star className="fill-yellow-200" />
+      </div>
+    ))}
+  </div>
+);
 
 export default function DivisionGamePage() {
   const { state, dispatch } = useApp();
@@ -303,7 +335,7 @@ export default function DivisionGamePage() {
       (startTime ? Math.floor((Date.now() - startTime) / 1000) : 0);
 
     return (
-      <div className="min-h-screen bg-gradient-radial from-orange-400 via-yellow-500 to-pink-500 animate-gradient-slow flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-white/95 backdrop-blur-md border-0 shadow-2xl rounded-2xl overflow-hidden">
           <div className="relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-orange-200 rounded-full opacity-30 blur-2xl"></div>
@@ -380,9 +412,10 @@ export default function DivisionGamePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-radial from-orange-400 via-yellow-500 to-pink-500 animate-gradient-slow">
+    <div className="min-h-screen bg-white">
+      <FloatingStars />
       {/* Header */}
-      <div className="bg-white/10 backdrop-blur-md border-b border-white/20 shadow-lg">
+      <div className="bg-gradient-to-r from-orange-500/90 to-pink-500/90 backdrop-blur-md border-b border-white/20 shadow-lg sticky top-0 z-50 animate-fade-in">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Button
@@ -441,10 +474,14 @@ export default function DivisionGamePage() {
                 {gameState.currentProblem + 1}/{PROBLEMS_PER_LEVEL}
               </span>
             </div>
-            <Progress
-              value={progress}
-              className="h-3 bg-orange-100 bg-gradient-to-r from-orange-500 to-pink-500"
-            />
+            <Progress value={progress} className="h-3 bg-orange-100 relative overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-500 to-pink-500 transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
+              >
+                <div className="absolute right-0 top-0 h-full w-4 bg-white/30 animate-pulse-gentle"></div>
+              </div>
+            </Progress>
           </CardContent>
         </Card>
 
@@ -486,7 +523,16 @@ export default function DivisionGamePage() {
 
         {/* Problem Card */}
         {currentProblem && (
-          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-2xl rounded-xl overflow-hidden">
+          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-2xl rounded-xl overflow-hidden relative animate-pop-in">
+            <div className="absolute -top-3 -right-3 rotate-12 text-yellow-400 animate-bounce-gentle">
+              <Star className="h-8 w-8 fill-yellow-300" />
+            </div>
+            <div
+              className="absolute -bottom-3 -left-3 -rotate-12 text-pink-400 animate-bounce-gentle"
+              style={{ animationDelay: "0.5s" }}
+            >
+              <Star className="h-8 w-8 fill-pink-300" />
+            </div>
             <div className="bg-gradient-to-r from-orange-500 to-pink-500 py-3">
               <CardHeader className="text-center pb-2">
                 <CardTitle className="text-4xl font-bold text-white font-nunito text-glow-white">
@@ -523,11 +569,14 @@ export default function DivisionGamePage() {
                   <Button
                     onClick={handleAnswerSubmit}
                     disabled={!gameState.userAnswer}
-                    className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl"
+                    className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl relative overflow-hidden group"
                   >
-                    {state.language === "en"
-                      ? "Submit Answer"
-                      : "Kirim Jawaban"}
+                    <span className="relative z-10">
+                      {state.language === "en"
+                        ? "Submit Answer"
+                        : "Kirim Jawaban"}
+                    </span>
+                    <span className="absolute inset-0 bg-white/20 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
                   </Button>
                 </>
               ) : (
