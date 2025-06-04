@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import {
   Card,
@@ -38,22 +38,30 @@ interface UserProfile {
   updatedAt?: Date;
 }
 
+// Client component to handle search params
+function SearchParamsHandler({ onNewUser }: { onNewUser: (isNew: boolean) => void }) {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    // Check if the user is coming from Google OAuth registration
+    const newUserParam = searchParams.get('newUser');
+    if (newUserParam === 'true') {
+      onNewUser(true);
+    }
+  }, [searchParams, onNewUser]);
+  
+  return null;
+}
+
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const { toast } = useToast();
-  const searchParams = useSearchParams();
 
-  useEffect(() => {
-    // Check if the user is coming from Google OAuth registration
-    const newUserParam = searchParams.get('newUser');
-    if (newUserParam === 'true') {
-      setIsNewUser(true);
-    }
-    
+  useEffect(() => {    
     loadUserProfile();
-  }, [searchParams]);
+  }, []);
 
   const loadUserProfile = async () => {
     setIsLoading(true);
@@ -131,6 +139,11 @@ export default function ProfilePage() {
   }
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+      {/* Wrap the SearchParamsHandler in a Suspense boundary */}
+      <Suspense fallback={null}>
+        <SearchParamsHandler onNewUser={setIsNewUser} />
+      </Suspense>
+      
       <div className="max-w-4xl mx-auto space-y-6">
         {/* New User Welcome Alert */}
         {isNewUser && (

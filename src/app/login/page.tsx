@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, ChangeEvent, useEffect } from "react";
+import { useState, FormEvent, ChangeEvent, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,20 @@ interface ApiError {
   message: string | { message: string };
 }
 
+// SearchParamsHandler component to handle search parameters
+function SearchParamsHandler({ setErrorMessage }: { setErrorMessage: (error: string | null) => void }) {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      setErrorMessage(error);
+    }
+  }, [searchParams, setErrorMessage]);
+  
+  return null;
+}
+
 export default function Login() {
   const { state, dispatch } = useApp();
   const { t } = useTranslation(state.language);
@@ -36,21 +50,12 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const searchParams = useSearchParams();
   const toggleLanguage = () => {
     dispatch({
       type: "SET_LANGUAGE",
       payload: state.language === "en" ? "id" : "en",
     });
   };
-  
-  // Check for auth-related URL parameters
-  useEffect(() => {
-    const error = searchParams.get('error');
-    if (error) {
-      setErrorMessage(error);
-    }
-  }, [searchParams]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -105,9 +110,14 @@ export default function Login() {
     } finally {
       setIsLoading(false);
     }
-  };
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">      <div className="w-full max-w-md space-y-6">
+  };  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+      {/* Wrap the component using useSearchParams in a Suspense boundary */}
+      <Suspense fallback={null}>
+        <SearchParamsHandler setErrorMessage={setErrorMessage} />
+      </Suspense>
+        
+      <div className="w-full max-w-md space-y-6">
         {/* Language Toggle */}
         <div className="flex justify-center">
           <Button
