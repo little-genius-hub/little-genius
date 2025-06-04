@@ -433,11 +433,17 @@ export default function PronunciationPage() {
       ? Math.floor((Date.now() - startTime) / 1000)
       : 0;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-0 shadow-2xl rounded-2xl">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-0 shadow-2xl rounded-2xl relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-yellow-300/30 to-pink-300/30 rounded-full blur-xl"></div>
+          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-br from-blue-300/30 to-purple-300/30 rounded-full blur-xl"></div>
           <CardContent className="p-8 text-center space-y-8 relative z-10">
-            <div className="w-24 h-24 bg-gradient-to-tr from-blue-400 to-pink-400 shadow-lg shadow-blue-400/30 rounded-full flex items-center justify-center mx-auto animate-float">
+            <div className="w-24 h-24 bg-gradient-to-tr from-blue-400 to-pink-400 shadow-lg shadow-blue-400/30 rounded-full flex items-center justify-center mx-auto animate-float relative">
               <Trophy className="h-12 w-12 text-white" />
+              <span className="absolute -top-3 -left-3 text-2xl animate-spin-slow">🎉</span>
+              <span className="absolute -top-3 -right-3 text-2xl animate-bounce-gentle">🌟</span>
+              <span className="absolute -bottom-3 -left-3 text-2xl animate-float">🎊</span>
+              <span className="absolute -bottom-3 -right-3 text-2xl animate-pulse-gentle">✨</span>
             </div>
             <div>
               <h2 className="text-3xl font-bold text-indigo-800 mb-2 font-nunito">
@@ -544,9 +550,21 @@ export default function PronunciationPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500">
+      <div className="min-h-screen bg-white">
+        {/* Floating Background Stickers */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute top-20 left-10 text-4xl animate-float opacity-60">🎵</div>
+          <div className="absolute top-40 right-20 text-3xl animate-bounce-gentle opacity-50">🌈</div>
+          <div className="absolute top-60 left-1/4 text-2xl animate-spin-slow opacity-40">⭐</div>
+          <div className="absolute bottom-40 right-10 text-3xl animate-float opacity-60">🎪</div>
+          <div className="absolute bottom-20 left-20 text-2xl animate-pulse-gentle opacity-50">🎨</div>
+          <div className="absolute top-1/3 right-1/3 text-2xl animate-bounce-gentle opacity-40">🎭</div>
+          <div className="absolute bottom-1/3 left-1/3 text-3xl animate-spin-slow opacity-50">🎯</div>
+          <div className="absolute top-80 right-40 text-2xl animate-float opacity-40">🎪</div>
+        </div>
+
         {/* Header */}
-        <div className="bg-white/10 backdrop-blur-sm border-b border-white/20">
+        <div className="bg-gradient-to-r from-blue-500/90 to-purple-500/90 backdrop-blur-sm border-b border-white/20 shadow-lg">
           <div className="max-w-4xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <Button
@@ -560,34 +578,38 @@ export default function PronunciationPage() {
               </Button>
 
               <div className="text-center">
-                <h1 className="text-xl font-bold text-white">
-                  {t("speechRecognition")}
+                <h1 className="text-xl font-bold text-white animate-pulse-gentle relative">
+                  🎤 {t("speechRecognition")} 🎤
+                  <span className="absolute -top-2 -right-8 text-yellow-300 text-xl animate-bounce-gentle">✨</span>
+                  <span className="absolute -top-2 -left-8 text-pink-300 text-xl animate-spin-slow">🌟</span>
                 </h1>
                 <Badge
                   variant="secondary"
-                  className="bg-white/20 text-white border-0"
+                  className="bg-white/20 text-white border-0 relative"
                 >
-                  {state.language === "en" ? "Sub-Level" : "Sub-Level"}{" "}
-                  {gameState.subLevel}
+                  🏆 {state.language === "en" ? "Sub-Level" : "Sub-Level"}{" "}
+                  {gameState.subLevel} 🏆
                 </Badge>
               </div>
 
               <div className="flex items-center gap-4 text-white">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 relative">
                   <Star className="h-5 w-5 text-yellow-300" />
                   <span className="font-bold">{gameState.score}</span>
+                  <span className="absolute -top-2 -right-2 text-sm animate-bounce-gentle">🎊</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 relative">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <Heart
                       key={i}
                       className={`h-5 w-5 ${
                         i < gameState.lives
-                          ? "text-red-400 fill-current"
+                          ? "text-red-400 fill-current animate-bounce-gentle"
                           : "text-white/30"
                       }`}
                     />
                   ))}
+                  <span className="absolute -top-3 -right-1 text-sm animate-pulse-gentle">💖</span>
                 </div>
               </div>
             </div>
@@ -598,12 +620,25 @@ export default function PronunciationPage() {
         <div className="max-w-2xl mx-auto p-4 space-y-6">
           {/* Progress */}
           <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
-            <CardContent className="p-4">
+            <CardContent className="p-4 relative">
+              <span className="absolute -top-2 -left-2 text-lg animate-bounce-gentle">🚀</span>
+              <span className="absolute -top-2 -right-2 text-lg animate-spin-slow">⭐</span>
               <div className="flex justify-between text-sm mb-2">
                 <span>{state.language === "en" ? "Progress" : "Kemajuan"}</span>
                 <span>{gameState.currentProblem + 1}/10</span>
               </div>
-              <Progress value={progress} className="h-3" />
+              <Progress value={progress} className="h-3 bg-blue-100 overflow-hidden relative">
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 opacity-70 w-full h-full"
+                  style={{ width: `${progress}%`, transition: "width 0.5s ease" }}
+                ></div>
+                <div
+                  className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.4)_50%,transparent_100%)] animate-shimmer"
+                  style={{ backgroundSize: "200% 100%" }}
+                ></div>
+              </Progress>
+              <span className="absolute -bottom-2 -left-2 text-lg animate-float">🎯</span>
+              <span className="absolute -bottom-2 -right-2 text-lg animate-pulse-gentle">🌈</span>
             </CardContent>
           </Card>
 
@@ -623,9 +658,15 @@ export default function PronunciationPage() {
                       (level === 2 && getHighestScoreForLevel(1) < 80) ||
                       (level === 3 && getHighestScoreForLevel(2) < 80)
                     }
-                    className="min-w-[80px]"
+                    className="min-w-[80px] relative"
                   >
+                    {level === 1 && <span className="absolute -top-2 -left-1 text-sm">🌱</span>}
+                    {level === 2 && <span className="absolute -top-2 -left-1 text-sm">🌿</span>}
+                    {level === 3 && <span className="absolute -top-2 -left-1 text-sm">🌳</span>}
                     {state.language === "en" ? "Level" : "Level"} {level}
+                    {gameState.subLevel === level && (
+                      <span className="absolute -top-2 -right-1 text-sm animate-bounce-gentle">⭐</span>
+                    )}
                   </Button>
                 ))}
               </div>
@@ -652,12 +693,21 @@ export default function PronunciationPage() {
                 <CardTitle className="text-lg text-gray-600 mb-4">
                   {t("speakWord")}
                 </CardTitle>
-                <div className="text-5xl font-bold text-gray-800 mb-4">
+                <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-4 animate-float relative">
                   {currentProblem.word.toUpperCase()}
+                  <span className="absolute -top-6 -right-6 text-3xl animate-spin-slow">🔤</span>
+                  <span className="absolute -bottom-6 -left-6 text-3xl animate-bounce-gentle">🎯</span>
+                  <span className="absolute -top-6 -left-6 text-2xl animate-float">📚</span>
+                  <span className="absolute -bottom-6 -right-6 text-2xl animate-pulse-gentle">🎪</span>
                 </div>
-                <Button variant="outline" onClick={speakWord} className="mb-4">
-                  <Volume2 className="h-4 w-4 mr-2" />
+                <Button
+                  variant="outline"
+                  onClick={speakWord}
+                  className="mb-4 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-all duration-300 group"
+                >
+                  <Volume2 className="h-4 w-4 mr-2 group-hover:animate-ping" />
                   {state.language === "en" ? "Listen" : "Dengarkan"}
+                  <span className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity">🔊</span>
                 </Button>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -679,12 +729,16 @@ export default function PronunciationPage() {
                         <Button
                           onClick={startListening}
                           disabled={!gameState.speechSupported}
-                          className="w-full h-16 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+                          className="w-full h-16 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-blue-500/30 transition-all duration-300 relative overflow-hidden group"
                         >
-                          <Mic className="h-6 w-6 mr-2" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 w-full transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+                          <Mic className="h-6 w-6 mr-2 animate-pulse-gentle" />
                           {state.language === "en"
                             ? "Start Speaking"
                             : "Mulai Berbicara"}
+                          <span className="absolute top-1 right-2 text-sm text-white/70 animate-bounce-gentle">🎤</span>
+                          <span className="absolute top-1 left-2 text-sm text-white/70 animate-spin-slow">🌟</span>
+                          <span className="absolute bottom-1 right-8 text-xs text-white/50 animate-float">✨</span>
                         </Button>
                       ) : (
                         <Button
@@ -708,14 +762,28 @@ export default function PronunciationPage() {
                 ) : (
                   <div className="text-center space-y-4">
                     <div
-                      className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto ${
+                      className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto relative ${
                         gameState.isCorrect ? "bg-green-100" : "bg-red-100"
                       }`}
                     >
                       {gameState.isCorrect ? (
-                        <CheckCircle className="h-10 w-10 text-green-600" />
+                        <>
+                          <CheckCircle className="h-10 w-10 text-green-600 animate-bounce-gentle" />
+                          <span className="absolute -top-4 -left-4 text-2xl animate-spin-slow">🎉</span>
+                          <span className="absolute -top-4 -right-4 text-2xl animate-bounce-gentle">🌟</span>
+                          <span className="absolute -bottom-4 -left-4 text-2xl animate-float">🎊</span>
+                          <span className="absolute -bottom-4 -right-4 text-2xl animate-spin-slow">✨</span>
+                          <span className="absolute top-0 left-8 text-xl animate-pulse-gentle">🏆</span>
+                          <span className="absolute top-0 right-8 text-xl animate-bounce-gentle">🎯</span>
+                          <span className="absolute bottom-0 left-8 text-xl animate-float">🌈</span>
+                          <span className="absolute bottom-0 right-8 text-xl animate-spin-slow">🎪</span>
+                        </>
                       ) : (
-                        <XCircle className="h-10 w-10 text-red-600" />
+                        <>
+                          <XCircle className="h-10 w-10 text-red-600" />
+                          <span className="absolute -top-3 -right-3 text-xl animate-bounce-gentle">💪</span>
+                          <span className="absolute -bottom-3 -left-3 text-xl animate-pulse-gentle">🎯</span>
+                        </>
                       )}
                     </div>
                     <div>
@@ -775,6 +843,54 @@ export default function PronunciationPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <style jsx>{`
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+          100% { transform: translateY(0px); }
+        }
+        
+        @keyframes bounce-gentle {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+        
+        @keyframes pulse-gentle {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.8; }
+        }
+        
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-bounce-gentle {
+          animation: bounce-gentle 2s ease-in-out infinite;
+        }
+        
+        .animate-pulse-gentle {
+          animation: pulse-gentle 2s ease-in-out infinite;
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 4s linear infinite;
+        }
+        
+        .animate-shimmer {
+          animation: shimmer 2s infinite linear;
+        }
+      `}</style>
     </>
   );
 }
