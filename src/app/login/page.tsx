@@ -96,7 +96,7 @@ export default function Login() {
   const { state, dispatch } = useApp();
   const { t } = useTranslation(state.language);
   const [formData, setFormData] = useState({
-    email: "admin@mail.com",
+    email: "jokowi@mail.com",
     password: "rahasia",
   });
   const [isLoading, setIsLoading] = useState(false);
