@@ -1,0 +1,139 @@
+import { NewUser, LoginUser } from "@/types/auth";
+import { db } from "../config";
+import { z } from "zod";
+import { comparePassword, hashPassword } from "@/helpers/bcrypt";
+import { signToken } from "@/helpers/jwt";
+import { ObjectId } from "mongodb";
+
+const UserSchema = z.object({
+  name: z.string(),
+  username: z.string().trim().min(1, "Username is required!"),
+  email: z
+    .string()
+    .nonempty("Email is required!")
+    .email("Invalid email format!"),
+  password: z
+    .string()
+    .nonempty("Password is required!")
+    .min(5, "Password must be at least 5 characters!"),
+  children: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z.string(),
+        age: z.number(),
+        grade: z.string(),
+        birthDate: z.string().optional(),
+      })
+    )
+    .optional()
+    .default([]),
+});
+
+const LoginSchema = z.object({
+  email: z
+    .string()
+    .nonempty("Email is required!")
+    .email("Invalid email format!"),
+  password: z
+    .string()
+    .nonempty("Password is required!")
+    .min(5, "Password must be at least 5 characters!"),
+});
+
+class UserModel {
+  static async collection() {
+    const database = await db.getDb();
+    return database.collection("users");
+  }
+
+  static async create(user: NewUser) {
+    UserSchema.parse(user);
+
+    const collection = await this.collection();
+
+    const existingUser = await collection.findOne({
+      $or: [{ email: user.email }, { username: user.username }],
+    });
+
+    if (existingUser) {
+      if (existingUser.email === user.email) {
+        throw { status: 400, message: "Email already exists!" };
+      }
+      if (existingUser.username === user.username) {
+        throw { status: 400, message: "Username already exists!" };
+      }
+    }
+
+    const hashedPassword = hashPassword(user.password);
+    const newUser = {
+      ...user,
+      password: hashedPassword,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const result = await collection.insertOne(newUser);
+    return result;
+  }
+  static async login(user: LoginUser) {
+    LoginSchema.parse(user);
+    const collection = await this.collection();
+
+    const existUser = await collection.findOne({ email: user.email });
+
+    if (!existUser) throw { status: 404, message: "User not found!" };
+
+    const isValid = comparePassword(user.password, existUser.password);
+    if (!isValid) throw { status: 403, message: "Invalid password" };
+    const access_token = await signToken({
+      userId: existUser._id.toString(),
+      name: existUser.name,
+      email: existUser.email,
+    });
+
+    return access_token;
+  }
+
+  static async findOrCreateGoogleUser(googleData: {
+    id: string;
+    email: string;
+    name: string;
+    picture?: string;
+  }) {
+    const collection = await this.collection();
+    
+    // First try to find by Google ID
+    let user = await collection.findOne({ googleId: googleData.id });
+    
+    // If not found by Google ID, try email
+    if (!user) {
+      user = await collection.findOne({ email: googleData.email });
+      
+      if (user) {
+        // Update existing user with Google ID
+        await collection.updateOne(
+          { _id: user._id },
+          { 
+            $set: { 
+              googleId: googleData.id,
+              profilePicture: googleData.picture || user.profilePicture,
+              updatedAt: new Date()
+            }
+          }
+        );
+        
+        // Get the updated user
+        user = await collection.findOne({ _id: user._id });
+      }
+    }
+    
+    return user;
+  }
+  static async findById(id: string) {
+    const collection = await this.collection();
+    return await collection.findOne({ _id: new ObjectId(id) });
+  }
+}
+
+export default UserModel;
